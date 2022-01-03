@@ -1,0 +1,4 @@
+<launch>
+	<!-- Load the Node -->
+	<node name ="cloud_merger1" pkg="my_cloud_merger" type="cloud_merger_node.py" output="screen"/>
+</launch>
