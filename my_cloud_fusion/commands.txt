@@ -1,0 +1,23 @@
+# show dependencies #
+cd catkin_ws
+rospack depends my_cloud_fusion
+
+# build workspace #
+cd 
+cd catkin_ws
+catkin_make
+
+# start bagfiles
+cd ~/Dokumente/Lidar_daten/lidar_meas_v2
+rosbag play -l meas_1.bag
+
+# launch fusion node
+roslaunch my_cloud_fusion fusion_node.launch
+
+
+# searched tf's #
+/base link for tf /frame_id               / topic
+/base_footprint   /livox_front            /livoxfront/livox/lidar
+/base_footprint   /velodyne_front_left    /velodyne/front_left/velodyne_points
+/base_footprint   /velodyne_front_right   /velodyne/front_right/velodyne_points-
+
