@@ -8,11 +8,13 @@ cd catkin_ws
 catkin_make
 
 # start bagfiles
-cd ~/Dokumente/Lidar_daten/lidar_meas_v2
-rosbag play -l meas_1.bag
+roslaunch my_cloud_merger bag.launc
 
 # launch fusion node
 roslaunch my_cloud_fusion fusion_node.launch
+
+# add transformation
+rosrun tf2_ros static_transform_publisher 0 0 0 0 0 0 1 base_footprint points_fused
 
 
 # searched tf's #
@@ -21,3 +23,16 @@ roslaunch my_cloud_fusion fusion_node.launch
 /base_footprint   /velodyne_front_left    /velodyne/front_left/velodyne_points
 /base_footprint   /velodyne_front_right   /velodyne/front_right/velodyne_points-
 
+## git ##
+
+    # status
+    cd catkin_ws/src
+    git status 
+
+    # git add
+    git add <file_1>
+
+    # git commit
+    git commit -m "message"
+
+    # git push
