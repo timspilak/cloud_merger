@@ -1,0 +1,6 @@
+<launch>
+    <!-- don't get negative time steps with bag loop-->
+    <param name="/use_sim_time" value="true"/>
+    <!-- start bag file-->
+	<node name="player" pkg="rosbag" type="play" output="screen" args="--clock -l /home/tim/Dokumente/Lidar_daten/lidar_meas_v2/meas_1.bag"/> 
+</launch>	

@@ -1,7 +1,9 @@
 <launch>
     <!-- start fusion node -->
     <node pkg="my_cloud_fusion" name ="pcl_fusion_1"  type="cloud_fusion_node" output="screen" required="true"/>
-    
+    <!-- static transform 
+    <node pkg="tf" type="static_transform_publisher" name="link_basefootprint_pointsfused" args="0 0 0 0 0 0 1 base_footprint points_fused 100" />
+    -->
     <!-- start rviz 
     <arg name="rvizconfig" default="$ (find my_cloud_fusion)/data/points_fused.rviz" />
     <node pkg="rviz" name="rviz" type="rviz" args="-d $ (arg rvizconfig)" output="screen" />-->

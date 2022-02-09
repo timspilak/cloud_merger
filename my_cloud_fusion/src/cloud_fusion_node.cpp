@@ -23,21 +23,25 @@ class CloudFusionNode
 public:
     // constructor
     CloudFusionNode(){
-        
+        // Debugging
         ROS_INFO("Fusion node is now running");
 
         // publisher
-        fusionpub = node.advertise<pcl::PointCloud<pcl::PointXYZ>>("/cloud_fusion_node/points_fused", 1); // topic name, queue <sensor_msgs::PointCloud2>
-        //fusionpub = node.advertise<sensor_msgs::PointCloud2>("/cloud_fusion_node/points_fused", 1); 
-
+        fusionpub = node.advertise<pcl::PointCloud<pcl::PointXYZI>>("/cloud_fusion_node/points_fused", 1); // topic name, queue <sensor_msgs::PointCloud2>
+        
         // subscriber
-        front_right_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZ>>("/velodyne/front_right/velodyne_points", 1, &CloudFusionNode::add_cloud_velodyne, this);
-        front_left_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZ>>("/velodyne/front_left/velodyne_points", 1, &CloudFusionNode::add_cloud_velodyne, this);
-        front_livox_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZ>>("/livoxfront/livox/lidar", 1, &CloudFusionNode::add_cloud_velodyne, this);
+        front_right_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/velodyne/front_right/velodyne_points", 1, &CloudFusionNode::add_fr_velodyne, this);
+        front_left_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/velodyne/front_left/velodyne_points", 1, &CloudFusionNode::add_fl_velodyne, this);
+        front_livox_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/livoxfront/livox/lidar", 1, &CloudFusionNode::add_liv, this);
     }
 
     // cloud transformation
     void cloud_transformation(){
+        /**    try to use with return
+        tf::Transformation transformation = tf::Transform(transform.getRotation(), transform.getOrigin());
+        pcl_ros::transformPointCloud(cloud, cloud, transform);
+        return cloud;**/
+        
         // transform front right velodyne
         tf::Transform transform = tf::Transform(tf_fr.getRotation(), tf_fr.getOrigin());
         pcl_ros::transformPointCloud(fr_vel_raw, fr_vel_trans, transform);
@@ -55,33 +59,33 @@ public:
     void cloud_fusion(){
         fused_cloud = fr_vel_trans;
         fused_cloud += fl_vel_trans;
-        //output_cloud += liv_trans;
+        //fused_cloud = liv_trans;
         liv_trans.clear();
     }
 
     // remove outliers
     void remove_outliers(){
-        pcl::RadiusOutlierRemoval<pcl::PointXYZ> outlier_filter;
+        //pcl::toROSMsg(fused_cloud, output_cloud);
+        pcl::RadiusOutlierRemoval<pcl::PointXYZ> filter;
         // configurate the filter
-        outlier_filter.setInputCloud(output_cloud);
-        outlier_filter.setRadiusSearch(0.3);
-        outlier_filter.setMinNeighborsInRadius (2);
-        outlier_filter.setKeepOrganized(true);
+        filter.setInputCloud(fused_cloud&);
+        filter.setRadiusSearch(0.3);
+        filter.setMinNeighborsInRadius (2);
+        //filter.setKeepOrganized(true);
         // apply filter
-        outlier_filter.filter (output_cloud);
-
+        filter.filter(*cloud_filtered);
     }
 
 
     void publish_cloud(){
         // set default values of outputcloud
-        output_cloud.header.frame_id = "points_fused";
+        fused_cloud.header.frame_id = "base_footprint";
 
         // publish fused points
-        fusionpub.publish(output_cloud);
+        fusionpub.publish(fused_cloud);
 
         // clear outputcloud
-        output_cloud.clear();
+        fused_cloud.clear();
     }
 
     // Transforms
@@ -90,41 +94,40 @@ public:
     tf::StampedTransform tf_liv;
 
 private:
-    // Callback function velodyne+ livox       
-    void add_cloud_velodyne(const pcl::PointCloud<pcl::PointXYZ> input){ // eigentlich ::ConstPtr& Verstehe ich nicht
         /** debugging 
         debugmsg.data = "received Message from " + input.header.frame_id; 
-        ROS_INFO_STREAM(debugmsg);
-        **/
-        // safe the relevant pointclouds
-        if (input.header.frame_id == "velodyne_front_right")
-        {
-            fr_vel_raw = input;
-        }
-        else if (input.header.frame_id == "velodyne_front_left")
-        {
-            fl_vel_raw = input;
-        }
-        else if (input.header.frame_id == "livox_front")
-        {
-            liv_raw += input;
-        }
+        ROS_INFO_STREAM(debugmsg);**/
+
+    // Callback function velodyne+ livox       
+    void add_fr_velodyne(const pcl::PointCloud<pcl::PointXYZI> input){ // eigentlich ::ConstPtr& Verstehe ich nicht
+        fr_vel_raw = input;
+    }
+    void add_fl_velodyne(const pcl::PointCloud<pcl::PointXYZI> input){ 
+        fl_vel_raw = input;
+    }
+     
+    void add_liv(const pcl::PointCloud<pcl::PointXYZI> input){ 
+        liv_raw += input;
     }
 
     // Pointclouds
-    pcl::PointCloud<pcl::PointXYZ> fr_vel_raw;
-    pcl::PointCloud<pcl::PointXYZ> fl_vel_raw;
-    pcl::PointCloud<pcl::PointXYZ> liv_raw;
+    //pcl::PointCloud<pcl::PointXYZ>::Ptr fr_vel_raw (new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZI> fr_vel_raw;
+    pcl::PointCloud<pcl::PointXYZI> fl_vel_raw;
+    pcl::PointCloud<pcl::PointXYZI> liv_raw;
 
 
-    pcl::PointCloud<pcl::PointXYZ> fr_vel_trans;
-    pcl::PointCloud<pcl::PointXYZ> fl_vel_trans;
-    pcl::PointCloud<pcl::PointXYZ> liv_trans;
+    pcl::PointCloud<pcl::PointXYZI> fr_vel_trans;
+    pcl::PointCloud<pcl::PointXYZI> fl_vel_trans;
+    pcl::PointCloud<pcl::PointXYZI> liv_trans;
 
-    pcl::PointCloud<pcl::PointXYZ> fused_cloud;
+    pcl::PointCloud<pcl::PointXYZI> fused_cloud;
+    
+    //pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_fused (new pcl::PointCloud<pcl::PointXYZ>);
+    //pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
 
-    pcl::PointCloud<pcl::PointXYZ> output_cloud;
-    //sensor_msgs::PointCloud2 output_cloud;
+    //pcl::PointCloud<pcl::PointXYZ> output_cloud;
+    sensor_msgs::PointCloud2 output_cloud;
 
     // ROS node
     ros::NodeHandle node{ "~"};
