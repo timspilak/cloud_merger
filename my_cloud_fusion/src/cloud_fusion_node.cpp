@@ -30,84 +30,51 @@ public:
         fusionpub = node.advertise<pcl::PointCloud<pcl::PointXYZI>>("/cloud_fusion_node/points_fused", 1); // topic name, queue <sensor_msgs::PointCloud2>
         
         // subscriber
-        front_right_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/velodyne/front_right/velodyne_points", 1, &CloudFusionNode::add_fr_velodyne, this);
-        front_left_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/velodyne/front_left/velodyne_points", 1, &CloudFusionNode::add_fl_velodyne, this);
-        rear_right_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/velodyne/rear_right/velodyne_points", 1, &CloudFusionNode::add_rr_velodyne, this);
-        rear_left_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/velodyne/rear_left/velodyne_points", 1, &CloudFusionNode::add_rl_velodyne, this);
-        top_middle_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/velodyne/top_middle/velodyne_points", 1, &CloudFusionNode::add_tm_velodyne, this);
-        front_livox_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/livoxfront/livox/lidar", 1, &CloudFusionNode::add_f_liv, this);
-    }
-
-    // cloud transformation
-    void cloud_transformation(){
-     
-        // transform front right velodyne
-        tf::Transform transform = tf::Transform(tf_fr.getRotation(), tf_fr.getOrigin());
-        pcl_ros::transformPointCloud(fr_vel_raw, fr_vel_trans, transform);
-
-        // transform front left velodyne
-        transform = tf::Transform(tf_fl.getRotation(), tf_fl.getOrigin());
-        pcl_ros::transformPointCloud(fl_vel_raw, fl_vel_trans, transform);
-        
-        // transform rear right velodyne
-        transform = tf::Transform(tf_rr.getRotation(), tf_rr.getOrigin());
-        pcl_ros::transformPointCloud(rr_vel_raw, rr_vel_trans, transform);
-
-        // transform rear left velodyne
-        transform = tf::Transform(tf_rl.getRotation(), tf_rl.getOrigin());
-        pcl_ros::transformPointCloud(rl_vel_raw, rl_vel_trans, transform);
-
-        // transform top middle velodyne
-        transform = tf::Transform(tf_tm.getRotation(), tf_tm.getOrigin());
-        pcl_ros::transformPointCloud(tm_vel_raw, tm_vel_trans, transform);
-
-        // transform front livox
-        transform = tf::Transform(tf_f_liv.getRotation(), tf_f_liv.getOrigin());
-        pcl_ros::transformPointCloud(f_liv_raw, f_liv_trans, transform);
+        front_right_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZ>>("/velodyne/front_right/velodyne_points", 1, &CloudFusionNode::add_fr_velodyne, this);
+        front_left_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZ>>("/velodyne/front_left/velodyne_points", 1, &CloudFusionNode::add_fl_velodyne, this);
+        rear_right_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZ>>("/velodyne/rear_right/velodyne_points", 1, &CloudFusionNode::add_rr_velodyne, this);
+        rear_left_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZ>>("/velodyne/rear_left/velodyne_points", 1, &CloudFusionNode::add_rl_velodyne, this);
+        top_middle_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZ>>("/velodyne/top_middle/velodyne_points", 1, &CloudFusionNode::add_tm_velodyne, this);
+        front_livox_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZ>>("/livoxfront/livox/lidar", 1, &CloudFusionNode::add_f_liv, this);
     }
 
     // cloud fusion
-    void cloud_fusion(){
+    pcl::PointCloud<pcl::PointXYZ> cloud_fusion(pcl::PointCloud<pcl::PointXYZ> output_cloud){
 
-        fused_cloud = fr_vel_trans;
-        fused_cloud += fl_vel_trans;
-        fused_cloud += rr_vel_trans;
-        fused_cloud += rl_vel_trans;
-        fused_cloud += tm_vel_trans;
-        fused_cloud += f_liv_trans;
+        output_cloud = fr_vel_trans;
+        output_cloud += fl_vel_trans;
+        output_cloud += rr_vel_trans;
+        output_cloud += rl_vel_trans;
+        output_cloud += tm_vel_trans;
+        output_cloud += f_liv_trans;
 
-        //f_liv_trans.clear();
+        f_liv_trans.clear();
+        return output_cloud;
     }
 
-/**    typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
 
-    // remove outliers
-    void remove_outliers(){
-        PointCloud::Ptr msg (new PointCloud);
-        msg->header.frame_id = "some_tf_frame";
-        msg->height = msg->width = 1;
-        msg->points.push_back (pcl::PointXYZ(1.0, 2.0, 3.0));
-        pcl::RadiusOutlierRemoval<pcl::PointXYZ> filter;
-        // configurate the filter
-        filter.setInputCloud(fused_cloud&);
-        filter.setRadiusSearch(0.3);
-        filter.setMinNeighborsInRadius (2);
-        //filter.setKeepOrganized(true);
+    pcl::PointCloud<pcl::PointXYZ> remove_outliers(pcl::PointCloud<pcl::PointXYZ>::Ptr fused_cloud, pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud){
+        pcl::RadiusOutlierRemoval<pcl::PointXYZ> outrem;
+        // build the filter
+        outrem.setInputCloud(fused_cloud);
+        outrem.setRadiusSearch(0.3);
+        outrem.setMinNeighborsInRadius (3);
+        outrem.setKeepOrganized(true);
         // apply filter
-        filter.filter(*cloud_filtered);
-    }**/
+        outrem.filter (*filtered_cloud);
+        pcl::PointCloud<pcl::PointXYZ> output;
+        output = *filtered_cloud;
+        return output;
+    }
 
 
-    void publish_cloud(){
+    void publish_cloud(pcl::PointCloud<pcl::PointXYZ> fused_cloud){
         // set default values of outputcloud
         fused_cloud.header.frame_id = "base_footprint";
         //pcl_conversions::toPCL(ros::Time::now(), fused_cloud.header.stamp);
-
+        
         // publish fused points
         fusionpub.publish(fused_cloud);
-
-        // clear outputcloud
-        fused_cloud.clear();
     }
 
     // Transforms
@@ -119,55 +86,46 @@ public:
     tf::StampedTransform tf_f_liv;
 
 private:
-        /** debugging 
-        debugmsg.data = "received Message from " + input.header.frame_id; 
-        ROS_INFO_STREAM(debugmsg);**/
+    // Callback functions 
 
-    // Callback function velodyne+ livox       
-    void add_fr_velodyne(const pcl::PointCloud<pcl::PointXYZI> input){ // eigentlich ::ConstPtr& Verstehe ich nicht
-        fr_vel_raw = input;
+    void add_fr_velodyne(const pcl::PointCloud<pcl::PointXYZ> input){ // ::ConstPtr& 
+        tf::Transform transform = tf::Transform(tf_fr.getRotation(), tf_fr.getOrigin());
+        pcl_ros::transformPointCloud(input, fr_vel_trans, transform);
     }
-    void add_fl_velodyne(const pcl::PointCloud<pcl::PointXYZI> input){ 
-        fl_vel_raw = input;
+
+    void add_fl_velodyne(const pcl::PointCloud<pcl::PointXYZ> input){ 
+        tf::Transform transform = tf::Transform(tf_fl.getRotation(), tf_fl.getOrigin());
+        pcl_ros::transformPointCloud(input, fl_vel_trans, transform);
     }
-    void add_rr_velodyne(const pcl::PointCloud<pcl::PointXYZI> input){ // eigentlich ::ConstPtr& Verstehe ich nicht
-        rr_vel_raw = input;
+
+    void add_rr_velodyne(const pcl::PointCloud<pcl::PointXYZ> input){
+        tf::Transform transform = tf::Transform(tf_rr.getRotation(), tf_rr.getOrigin());
+        pcl_ros::transformPointCloud(input, rr_vel_trans, transform);
     }
-    void add_tm_velodyne(const pcl::PointCloud<pcl::PointXYZI> input){ // eigentlich ::ConstPtr& Verstehe ich nicht
-        tm_vel_raw = input;
+
+    void add_rl_velodyne(const pcl::PointCloud<pcl::PointXYZ> input){ 
+        tf::Transform transform = tf::Transform(tf_rl.getRotation(), tf_rl.getOrigin());
+        pcl_ros::transformPointCloud(input, rl_vel_trans, transform);
     }
-    void add_rl_velodyne(const pcl::PointCloud<pcl::PointXYZI> input){ 
-        rl_vel_raw = input;
+
+    void add_tm_velodyne(const pcl::PointCloud<pcl::PointXYZ> input){
+        tf::Transform transform = tf::Transform(tf_tm.getRotation(), tf_tm.getOrigin());
+        pcl_ros::transformPointCloud(input, tm_vel_trans, transform);
     }
-    void add_f_liv(const pcl::PointCloud<pcl::PointXYZI> input){ 
-        f_liv_raw = input;
+
+    void add_f_liv(const pcl::PointCloud<pcl::PointXYZ> input){ 
+        tf::Transform transform = tf::Transform(tf_f_liv.getRotation(), tf_f_liv.getOrigin());
+        pcl_ros::transformPointCloud(input, f_liv_trans, transform);
     }
 
 
     // Pointclouds
-    //pcl::PointCloud<pcl::PointXYZ>::Ptr fr_vel_raw (new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::PointCloud<pcl::PointXYZI> fr_vel_raw;
-    pcl::PointCloud<pcl::PointXYZI> fl_vel_raw;
-    pcl::PointCloud<pcl::PointXYZI> rr_vel_raw;
-    pcl::PointCloud<pcl::PointXYZI> rl_vel_raw;
-    pcl::PointCloud<pcl::PointXYZI> tm_vel_raw;
-    pcl::PointCloud<pcl::PointXYZI> f_liv_raw;
-
-
-    pcl::PointCloud<pcl::PointXYZI> fr_vel_trans;
-    pcl::PointCloud<pcl::PointXYZI> fl_vel_trans;
-    pcl::PointCloud<pcl::PointXYZI> rr_vel_trans;
-    pcl::PointCloud<pcl::PointXYZI> rl_vel_trans;
-    pcl::PointCloud<pcl::PointXYZI> tm_vel_trans;
-    pcl::PointCloud<pcl::PointXYZI> f_liv_trans;
-
-    pcl::PointCloud<pcl::PointXYZI> fused_cloud;
-    
-    //pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_fused (new pcl::PointCloud<pcl::PointXYZ>);
-    //pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
-
-    //pcl::PointCloud<pcl::PointXYZ> output_cloud;
-    sensor_msgs::PointCloud2 output_cloud;
+    pcl::PointCloud<pcl::PointXYZ> fr_vel_trans;
+    pcl::PointCloud<pcl::PointXYZ> fl_vel_trans;
+    pcl::PointCloud<pcl::PointXYZ> rr_vel_trans;
+    pcl::PointCloud<pcl::PointXYZ> rl_vel_trans;
+    pcl::PointCloud<pcl::PointXYZ> tm_vel_trans;
+    pcl::PointCloud<pcl::PointXYZ> f_liv_trans;
 
     // ROS node
     ros::NodeHandle node{ "~"};
@@ -224,24 +182,29 @@ int main(int argc, char**argv)
         }catch(tf::TransformException ex){
             ROS_ERROR("%s", ex.what());
         }
-
-        // transform all input clouds
-        node.cloud_transformation();
+        // Clouds
+        pcl::PointCloud<pcl::PointXYZ> output_cloud;
 
         // fuse all input clouds
-        node.cloud_fusion();
+        output_cloud = node.cloud_fusion(output_cloud);
 
         // remove outliers
-        //node.remove_outliers();
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+        *cloud = output_cloud;
+        pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud (new pcl::PointCloud<pcl::PointXYZ>);
 
+        output_cloud = node.remove_outliers(cloud, filtered_cloud);
         // remove > 4m
-
+        //output_cloud = node.trim_cloud(output_cloud);
         // remove out of Range
 
         // remove ground
 
         // publish final cloud
-        node.publish_cloud();
+        node.publish_cloud(output_cloud);
+
+        // clear outputcloud
+        output_cloud.clear();
 
         // do ROS things
         ros::spinOnce();
