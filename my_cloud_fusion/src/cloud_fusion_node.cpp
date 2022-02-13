@@ -227,19 +227,20 @@ int main(int argc, char**argv)
         // fuse all input clouds
         output_cloud = node.cloud_fusion(output_cloud);
         fused_cloud = output_cloud;
-
-        // remove outliers
         *cloud = output_cloud;
-        *cloud = node.remove_outliers(cloud, filtered_cloud);
 
         // filter in height
-    
-        output_cloud = node.filter_axis(cloud, filtered_cloud, 0.1, 2.0, "z");                         // height
-        //node.filter_axis(cloud, filtered_cloud, -5.0, 5.0, "x");                        // width
-        //node.filter_axis(cloud, filtered_cloud, -20.0, 20.0, "y");       // length
+        *cloud = node.filter_axis(cloud, filtered_cloud, 0.0, 2.0, "z");        // height
+        *cloud = node.filter_axis(cloud, filtered_cloud, -20.0, 20.0, "x");     // length
+        *cloud = node.filter_axis(cloud, filtered_cloud, -5.0, 5.0, "y");       // length
+
+        // remove outliers
+        *cloud = node.remove_outliers(cloud, filtered_cloud);
+
         // remove ground
 
         // publish final cloud
+        output_cloud = *cloud;
         node.publish_cloud(output_cloud, fused_cloud);
 
         // clear outputcloud
