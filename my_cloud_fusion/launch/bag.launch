@@ -2,6 +2,6 @@
     <!-- don't get negative time steps with bag loop-->
     <param name="/use_sim_time" value="true"/>
     <!-- start bag file -->
-	<node name="player" pkg="rosbag" type="play" output="screen" args="--clock -l /home/hhn_master/Dokumente/Lidar_daten/fahrt_2.bag"/> 
+	<node name="player" pkg="rosbag" type="play" output="screen" args="--clock -l -r 0.5 /home/hhn_master/Dokumente/Lidar_daten/fahrt_2.bag"/> 
   
 </launch>	

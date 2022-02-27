@@ -26,6 +26,9 @@
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
+#include <Eigen/Dense>
+// voxelgrid
+#include <pcl/filters/voxel_grid.h>
 
 #include <sensor_msgs/PointCloud2.h>
 #include <tf/transform_listener.h>
@@ -34,15 +37,20 @@
 class CloudFusionNode
 {
 public:
+    // -----------------------------------------------------------------------------------------
     // constructor
+    // -----------------------------------------------------------------------------------------
     CloudFusionNode(){
         // Debugging
         ROS_INFO("Fusion node is now running");
 
         // publisher
-        fusionpub = node.advertise<pcl::PointCloud<pcl::PointXYZI>>("/cloud_fusion_node/points_filtered", 1); // topic name, queue <sensor_msgs::PointCloud2>
-        comparepub = node.advertise<pcl::PointCloud<pcl::PointXYZI>>("/cloud_fusion_node/points_fused", 1); 
-        comparepub_1 = node.advertise<pcl::PointCloud<pcl::PointXYZI>>("/cloud_fusion_node/points_cut", 1); 
+        fusionpub = node.advertise<pcl::PointCloud<pcl::PointXYZI>>("/cloud_fusion_node/points_fused", 1); // topic name, queue <sensor_msgs::PointCloud2>
+        roipub = node.advertise<pcl::PointCloud<pcl::PointXYZI>>("/cloud_fusion_node/points_roi", 1);
+        nogroundpub = node.advertise<pcl::PointCloud<pcl::PointXYZI>>("/cloud_fusion_node/points_no_ground", 1);
+        groundpub = node.advertise<pcl::PointCloud<pcl::PointXYZI>>("/cloud_fusion_node/points_ground", 1);
+        voxelpub = node.advertise<pcl::PointCloud<pcl::PointXYZI>>("/cloud_fusion_node/points_voxel", 1);
+
 
         // subscriber
         front_right_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/velodyne/front_right/velodyne_points", 1, &CloudFusionNode::add_fr_velodyne, this);
@@ -52,67 +60,129 @@ public:
         top_middle_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/velodyne/top_middle/velodyne_points", 1, &CloudFusionNode::add_tm_velodyne, this);
         front_livox_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/livoxfront/livox/lidar", 1, &CloudFusionNode::add_f_liv, this);
     }
-
+    // -----------------------------------------------------------------------------------------
     // cloud fusion
-    // benötigt die clouds roh
-    pcl::PointCloud<pcl::PointXYZI> cloud_fusion(pcl::PointCloud<pcl::PointXYZI> output_cloud){
+    // -----------------------------------------------------------------------------------------
+    void cloud_fusion(const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr){
 
-        output_cloud = fr_vel_trans;
-        output_cloud += fl_vel_trans;
-        output_cloud += rr_vel_trans;
-        output_cloud += rl_vel_trans;
-        output_cloud += tm_vel_trans;
-        output_cloud += f_liv_trans;
+        pcl::PointCloud<pcl::PointXYZI> fused_cloud;
+        fused_cloud = *cloud_ptr;
 
-        f_liv_trans.clear();
-        return output_cloud;
+        fused_cloud = fr_vel_trans;
+        fused_cloud += fl_vel_trans;
+        fused_cloud += rr_vel_trans;
+        fused_cloud += rl_vel_trans;
+        fused_cloud += tm_vel_trans;
+        fused_cloud += f_liv_trans;
+
+        *cloud_ptr = fused_cloud;
     }
 
+    // -----------------------------------------------------------------------------------------
     // remove outliers
-    pcl::PointCloud<pcl::PointXYZI> remove_outliers(pcl::PointCloud<pcl::PointXYZI>::Ptr fused_cloud, pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud){
+    // -----------------------------------------------------------------------------------------
+    void remove_outliers(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr){
         
         // build the filter
         pcl::RadiusOutlierRemoval<pcl::PointXYZI> outrem;
-        outrem.setInputCloud(fused_cloud);
+        outrem.setInputCloud(cloud_ptr);
         outrem.setRadiusSearch(0.3);
         outrem.setMinNeighborsInRadius(1);
         outrem.setKeepOrganized(false);
 
         // apply filter
-        outrem.filter (*filtered_cloud);
-
-        // return cloud
-        pcl::PointCloud<pcl::PointXYZI> output;
-        output = *filtered_cloud;
-        return output;
+        outrem.filter (*cloud_ptr);
     }
 
-    // filter in axis
-    pcl::PointCloud<pcl::PointXYZI> filter_axis(pcl::PointCloud<pcl::PointXYZI>::Ptr fused_cloud, 
-            pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud, double lower, double upper, std::string axis){
+    // -----------------------------------------------------------------------------------------
+    // filter ROI
+    // -----------------------------------------------------------------------------------------
+    void filter_ROI(    const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr, 
+                        pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud_ptr, 
+                        double xsmall, double xbig, double ysmall, double ybig, double zmin, double zmax){
 
-        // build the filter
-        pcl::PassThrough<pcl::PointXYZI> pass;
-        pass.setInputCloud (fused_cloud);
-        pass.setFilterFieldName (axis);
-        pass.setFilterLimits (lower, upper);
-        //pass.setFilterLimitsNegative (true);
-       
-        // apply filter
-        pass.filter (*filtered_cloud);
+        //build the  |, first part
+        pcl::PointCloud<pcl::PointXYZI>::Ptr first_part_ptr( new pcl::PointCloud<pcl::PointXYZI>);                   
+        // filter in x
+        pcl::PassThrough<pcl::PointXYZI> xpass;
+        xpass.setInputCloud (cloud_ptr);
+        xpass.setFilterFieldName ("x");
+        xpass.setFilterLimits (-xbig/2, xbig/2);
+        xpass.filter (*first_part_ptr);
 
-        // return cloud
-        pcl::PointCloud<pcl::PointXYZI> output;
-        output = *filtered_cloud;
-        return output;
+        // filter in y
+        pcl::PassThrough<pcl::PointXYZI> ypass;
+        ypass.setInputCloud (first_part_ptr);
+        ypass.setFilterFieldName ("y");
+        ypass.setFilterLimits (-ysmall/2, ysmall/2);
+        ypass.filter (*first_part_ptr);
+
+        // filter in z
+        pcl::PassThrough<pcl::PointXYZI> zpass;
+        zpass.setInputCloud (first_part_ptr);
+        zpass.setFilterFieldName ("z");
+        zpass.setFilterLimits (zmin, zmax);
+        zpass.filter (*first_part_ptr);
+
+        // build the --, secound part
+        pcl::PointCloud<pcl::PointXYZI>::Ptr secound_part_ptr (new pcl::PointCloud<pcl::PointXYZI>); 
+        // filter in x
+        pcl::PassThrough<pcl::PointXYZI> xpass2;
+        xpass2.setInputCloud (cloud_ptr);
+        xpass2.setFilterFieldName ("x");
+        xpass2.setFilterLimits (xbig/2, (xbig/2)+xsmall);
+        xpass2.filter (*secound_part_ptr);
+
+        // filter in y
+        pcl::PassThrough<pcl::PointXYZI> ypass2;
+        ypass2.setInputCloud (secound_part_ptr);
+        ypass2.setFilterFieldName ("y");
+        ypass2.setFilterLimits (-ybig/2, ybig/2);
+        ypass2.filter (*secound_part_ptr);
+
+        // filter in z
+        pcl::PassThrough<pcl::PointXYZI> zpass2;
+        zpass2.setInputCloud (secound_part_ptr);
+        zpass2.setFilterFieldName ("z");
+        zpass2.setFilterLimits (zmin, zmax);
+        zpass2.filter (*secound_part_ptr);
+
+        // Fuse both segments
+        pcl::PointCloud<pcl::PointXYZI> first_part;
+        first_part = *first_part_ptr;
+        pcl::PointCloud<pcl::PointXYZI> secound_part;
+        secound_part = *secound_part_ptr;
+        first_part += secound_part;
+        *filtered_cloud_ptr = first_part;
     }
 
-    // remove ground with RANSAC pcl::PointCloud<pcl::PointXYZI>
-    void remove_ground(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud, 
-                                                    pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_cloud,
-                                                    pcl::PointCloud<pcl::PointXYZI>::Ptr ground_cloud){
+    // -----------------------------------------------------------------------------------------
+    // remove ground with RANSAC 
+    // -----------------------------------------------------------------------------------------
+    void remove_ground( const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr, 
+                        pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_cloud_ptr,
+                        pcl::PointCloud<pcl::PointXYZI>::Ptr ground_cloud_ptr){
+        
+        // divide pointcloud
+        // -----------------------------------------------------------------------------------------
+        pcl::PointCloud<pcl::PointXYZI>::Ptr ground_part_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+        pcl::PassThrough<pcl::PointXYZI> zpass;
+        zpass.setInputCloud (cloud_ptr);
+        zpass.setFilterFieldName ("z");
+        zpass.setFilterLimits (0.05, 0.2);
+        zpass.filter (*ground_part_ptr);
 
-        // preperations
+        pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_part_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+        pcl::PassThrough<pcl::PointXYZI> zpass2;
+        zpass2.setInputCloud (cloud_ptr);
+        zpass2.setFilterFieldName ("z");
+        zpass2.setFilterLimits (0.21, 3.0);
+        zpass2.filter (*no_ground_part_ptr);
+        // -----------------------------------------------------------------------------------------
+        
+        // RANSAC
+        // -----------------------------------------------------------------------------------------
+        // preparations
         pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients ());
         pcl::PointIndices::Ptr inliers (new pcl::PointIndices ());
 
@@ -120,70 +190,113 @@ public:
         pcl::SACSegmentation<pcl::PointXYZI> seg;
 
         seg.setOptimizeCoefficients (true);
+        // set the modeltype as plane
         seg.setModelType (pcl::SACMODEL_PLANE);
+        // set the method for segmentation
         seg.setMethodType (pcl::SAC_RANSAC);
-        //seg.setMaxIterations (1000);
-        seg.setDistanceThreshold (0.01);
-        seg.setInputCloud (cloud);
-        seg.setProbability(1.0);
+        // Maximum number of iterations before giving up
+        seg.setMaxIterations (50);
+        // Set the axis for which to search for perpendicular planes
+        Eigen::Vector3f axis = Eigen::Vector3f(0.0, 0.0, 1.0);
+        seg.setAxis(axis); 
+        // Set a allowed deviation angle from vector axis in radian
+        seg.setEpsAngle((2*3.14)/180); 
+        // max distance to the model threshold
+        seg.setDistanceThreshold (0.05);
+        seg.setInputCloud (ground_part_ptr);
+        // Set the probability of choosing at least one sample free from outliers. 
+        seg.setProbability(0.99);
         seg.segment (*inliers, *coefficients);
+        // -----------------------------------------------------------------------------------------
 
+        // Extract inliers / outlieres
+        // -----------------------------------------------------------------------------------------
         // Create the filtering object
         pcl::ExtractIndices<pcl::PointXYZI> extract;
 
         // Extract the inliers
-        extract.setInputCloud (cloud);
+        extract.setInputCloud (ground_part_ptr);
         extract.setIndices (inliers);
         extract.setNegative (true);
-        extract.filter (*no_ground_cloud);
+        extract.filter (*no_ground_cloud_ptr);
 
         extract.setNegative(false);
-        extract.filter(*ground_cloud);
-/**
-        // preparations
-        pcl::SampleConsensusModelPlane<pcl::PointXYZI>::Ptr model_plane (new pcl::SampleConsensusModelPlane<pcl::PointXYZI> (cloud));
-        std::vector<int> ground;
-        //pcl::PointIndices::Ptr ground (new pcl::PointIndices ());
+        extract.filter(*ground_cloud_ptr);
+        // -----------------------------------------------------------------------------------------
 
-        // RANSAC
-        pcl::RandomSampleConsensus<pcl::PointXYZI> ransac (model_plane);
-        ransac.setDistanceThreshold(0.05);
-        ransac.computeModel();
-        ransac.getInliers(ground);
+        // merge clouds
+        // -----------------------------------------------------------------------------------------
+        pcl::PointCloud<pcl::PointXYZI> no_ground;
+        no_ground = *no_ground_cloud_ptr;
+        pcl::PointCloud<pcl::PointXYZI> no_ground_part;
+        no_ground_part = *no_ground_part_ptr;
 
-        // copies all inliers of the model computed to another PointCloud
-        pcl::copyPointCloud (*cloud, ground, *filtered_cloud);
-/**        
-        // extract ground
-        extract.setInputCloud(cloud);
-        extract.setIndices(ground);
-        extract.setNegative(true);
-        extract.filter(*filtered_cloud);
-**/
-        // return cloud
-        //pcl::PointCloud<pcl::PointXYZI> output;
-        //output = *filtered_cloud;
-        //return output;
+        no_ground += no_ground_part;
+
+        *no_ground_cloud_ptr = no_ground;
+        // -----------------------------------------------------------------------------------------
+
     }
 
-    void publish_cloud(pcl::PointCloud<pcl::PointXYZI> output_cloud, pcl::PointCloud<pcl::PointXYZI> filtered_cloud, pcl::PointCloud<pcl::PointXYZI> cut_cloud){
-        // set default values of outputcloud
-        output_cloud.header.frame_id = "base_footprint";
-        //pcl_conversions::toPCL(ros::Time::now(), output_cloud.header.stamp);
+    // -----------------------------------------------------------------------------------------
+    // voxelgrid filter
+    // -----------------------------------------------------------------------------------------
+    void voxelgrid( const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud,
+                    pcl::PointCloud<pcl::PointXYZI>::Ptr voxel_cloud_ptr,
+                    double voxelsize){
+
+        // build the filter
+        pcl::VoxelGrid<pcl::PointXYZI> voxel_grid;
+        voxel_grid.setInputCloud (cloud);
+        // set Size of each voxel in x, y, z
+        voxel_grid.setLeafSize (voxelsize, voxelsize, voxelsize);
+        // Set to true if all fields need to be downsampled, or false if just XYZ.
+        voxel_grid.setDownsampleAllData(true);
+        // Set the minimum number of points required for a voxel to be used
+        voxel_grid.setMinimumPointsNumberPerVoxel(5);   
+        voxel_grid.filter(*voxel_cloud_ptr);
+    }
+
+    // -----------------------------------------------------------------------------------------
+    // publish clouds
+    // -----------------------------------------------------------------------------------------
+    void publish(   const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr,
+                    const pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud_ptr,
+                    const pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_cloud_ptr,
+                    const pcl::PointCloud<pcl::PointXYZI>::Ptr ground_cloud_ptr,
+                    const pcl::PointCloud<pcl::PointXYZI>::Ptr voxel_cloud_ptr){
         
-        // publish fused points
-        fusionpub.publish(output_cloud);
+        // get clouds from pointers
+        pcl::PointCloud<pcl::PointXYZI> cloud;
+        pcl::PointCloud<pcl::PointXYZI> filtered_cloud;
+        pcl::PointCloud<pcl::PointXYZI> no_ground_cloud;
+        pcl::PointCloud<pcl::PointXYZI> ground_cloud;
+        pcl::PointCloud<pcl::PointXYZI> voxel_cloud;
 
-        // for comaprison
+        cloud = *cloud_ptr;
+        filtered_cloud = *filtered_cloud_ptr;
+        no_ground_cloud = *no_ground_cloud_ptr;
+        ground_cloud = *ground_cloud_ptr;
+        voxel_cloud = *voxel_cloud_ptr;
+
+        // set default values 
+        cloud.header.frame_id = "base_footprint";
         filtered_cloud.header.frame_id = "base_footprint";
-        comparepub.publish(filtered_cloud);
+        no_ground_cloud.header.frame_id = "base_footprint";
+        ground_cloud.header.frame_id = "base_footprint";
+        voxel_cloud.header.frame_id = "base_footprint";
 
-        cut_cloud.header.frame_id = "base_footprint";
-        comparepub_1.publish(cut_cloud);
+        // publish fused points
+        fusionpub.publish(cloud);
+        roipub.publish(filtered_cloud);
+        nogroundpub.publish(no_ground_cloud);
+        groundpub.publish(ground_cloud);
+        voxelpub.publish(voxel_cloud);
     }
     
-
+    // -----------------------------------------------------------------------------------------
     // Transforms
+    // -----------------------------------------------------------------------------------------
     tf::StampedTransform tf_fr;
     tf::StampedTransform tf_fl;
     tf::StampedTransform tf_rr;
@@ -192,8 +305,10 @@ public:
     tf::StampedTransform tf_f_liv;
 
 private:
-    // Callback functions 
 
+    // -----------------------------------------------------------------------------------------
+    // Callback functions 
+    // -----------------------------------------------------------------------------------------
     void add_fr_velodyne(const pcl::PointCloud<pcl::PointXYZI> input){ // ::ConstPtr& 
         tf::Transform transform = tf::Transform(tf_fr.getRotation(), tf_fr.getOrigin());
         pcl_ros::transformPointCloud(input, fr_vel_trans, transform);
@@ -246,16 +361,19 @@ private:
 
     // publisher
     ros::Publisher fusionpub;
-    ros::Publisher comparepub;
-    ros::Publisher comparepub_1;
+    ros::Publisher roipub;
+    ros::Publisher nogroundpub;
+    ros::Publisher groundpub;
+    ros::Publisher voxelpub;
 
     // create msgs
     std_msgs::String debugmsg;
 
 };
 
+// -----------------------------------------------------------------------------------------
 // Main
-
+// -----------------------------------------------------------------------------------------
 int main(int argc, char**argv)
 {
     // initialize ROS
@@ -265,7 +383,7 @@ int main(int argc, char**argv)
     CloudFusionNode node = CloudFusionNode();
     
     // Set rate to 10 hz
-    ros::Rate loop_rate(1);
+    ros::Rate loop_rate(0.5);
 
     // get transformations  
     tf::TransformListener listener_fr;
@@ -295,37 +413,36 @@ int main(int argc, char**argv)
         }
         
         // Clouds
-        pcl::PointCloud<pcl::PointXYZI> output_cloud;
-        pcl::PointCloud<pcl::PointXYZI>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZI>);
-        pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud (new pcl::PointCloud<pcl::PointXYZI>);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
         pcl::PointCloud<pcl::PointXYZI>::Ptr ground_cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr voxel_cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
 
-        // for comaprison
-        pcl::PointCloud<pcl::PointXYZI> fused_cloud;
-        pcl::PointCloud<pcl::PointXYZI> ground_cloud;
+        // 1.) fuse all input clouds
+        node.cloud_fusion(cloud_ptr);
 
-        // fuse all input clouds
-        output_cloud = node.cloud_fusion(output_cloud);
-        fused_cloud = output_cloud;
-        *cloud = output_cloud;
+        // 2.) filter ROI
+        node.filter_ROI(cloud_ptr, filtered_cloud_ptr, 20.0, 30.0, 10.0, 20.0, 0.05, 3.0);
 
-        // filter ROI
-        *cloud = node.filter_axis(cloud, filtered_cloud, -0.5, 2.0, "z");        // height
-        *cloud = node.filter_axis(cloud, filtered_cloud, -20.0, 20.0, "x");     // length
-        *cloud = node.filter_axis(cloud, filtered_cloud, -5.0, 5.0, "y");       // length
+        // 3.) remove outliers
+        node.remove_outliers(filtered_cloud_ptr);
 
-        // remove outliers
-        *cloud = node.remove_outliers(cloud, filtered_cloud);
+        // 4.) remove ground
+        node.remove_ground(filtered_cloud_ptr, no_ground_cloud_ptr, ground_cloud_ptr);
+        pcl::PointCloud<pcl::PointXYZI> ground1;
+        ground1 = *ground_cloud_ptr;
+        node.remove_ground(no_ground_cloud_ptr, no_ground_cloud_ptr, ground_cloud_ptr);
+        pcl::PointCloud<pcl::PointXYZI> ground2;
+        ground2 = *ground_cloud_ptr;
+        ground1 += ground2;
+        *ground_cloud_ptr = ground1;
 
-        // remove ground
-        node.remove_ground(cloud, filtered_cloud,ground_cloud_ptr);
-        ground_cloud = *ground_cloud_ptr;
-        // publish final cloud
-        output_cloud = *cloud;
-        node.publish_cloud(output_cloud, fused_cloud, ground_cloud);
+        // 5.) voxelgrid
+        node.voxelgrid(no_ground_cloud_ptr, voxel_cloud_ptr, 0.5);        
 
-        // clear outputcloud
-        output_cloud.clear();
+        // 6.) publish final cloud
+        node.publish(cloud_ptr, filtered_cloud_ptr, no_ground_cloud_ptr, ground_cloud_ptr, voxel_cloud_ptr); // publisher uebergeben
 
         // do ROS things
         ros::spinOnce();
@@ -333,8 +450,3 @@ int main(int argc, char**argv)
     }
 
 }
-
-// pointer to cloud
-//      output = *filtered_cloud
-// cloud to pointer
-//      *cloud = output_cloud;
