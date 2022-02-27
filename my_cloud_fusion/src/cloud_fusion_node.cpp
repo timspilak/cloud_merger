@@ -15,6 +15,17 @@
 #include <pcl/filters/radius_outlier_removal.h>
 // filter areas
 #include <pcl/filters/passthrough.h>
+// remove ground
+/**
+#include <pcl/filters/extract_indices.h>
+#include <pcl/sample_consensus/ransac.h>
+#include <pcl/sample_consensus/sac_model_plane.h>
+**/
+#include <pcl/filters/extract_indices.h>
+#include <pcl/ModelCoefficients.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
 
 #include <sensor_msgs/PointCloud2.h>
 #include <tf/transform_listener.h>
@@ -31,6 +42,7 @@ public:
         // publisher
         fusionpub = node.advertise<pcl::PointCloud<pcl::PointXYZI>>("/cloud_fusion_node/points_filtered", 1); // topic name, queue <sensor_msgs::PointCloud2>
         comparepub = node.advertise<pcl::PointCloud<pcl::PointXYZI>>("/cloud_fusion_node/points_fused", 1); 
+        comparepub_1 = node.advertise<pcl::PointCloud<pcl::PointXYZI>>("/cloud_fusion_node/points_cut", 1); 
 
         // subscriber
         front_right_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/velodyne/front_right/velodyne_points", 1, &CloudFusionNode::add_fr_velodyne, this);
@@ -57,14 +69,13 @@ public:
     }
 
     // remove outliers
-    // benötigt Pointer 
     pcl::PointCloud<pcl::PointXYZI> remove_outliers(pcl::PointCloud<pcl::PointXYZI>::Ptr fused_cloud, pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud){
         
         // build the filter
         pcl::RadiusOutlierRemoval<pcl::PointXYZI> outrem;
         outrem.setInputCloud(fused_cloud);
         outrem.setRadiusSearch(0.3);
-        outrem.setMinNeighborsInRadius (3);
+        outrem.setMinNeighborsInRadius(1);
         outrem.setKeepOrganized(false);
 
         // apply filter
@@ -76,7 +87,7 @@ public:
         return output;
     }
 
-    // filter in height
+    // filter in axis
     pcl::PointCloud<pcl::PointXYZI> filter_axis(pcl::PointCloud<pcl::PointXYZI>::Ptr fused_cloud, 
             pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud, double lower, double upper, std::string axis){
 
@@ -96,7 +107,66 @@ public:
         return output;
     }
 
-    void publish_cloud(pcl::PointCloud<pcl::PointXYZI> output_cloud, pcl::PointCloud<pcl::PointXYZI> filtered_cloud){
+    // remove ground with RANSAC pcl::PointCloud<pcl::PointXYZI>
+    void remove_ground(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud, 
+                                                    pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_cloud,
+                                                    pcl::PointCloud<pcl::PointXYZI>::Ptr ground_cloud){
+
+        // preperations
+        pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients ());
+        pcl::PointIndices::Ptr inliers (new pcl::PointIndices ());
+
+        // Create the segmentation object
+        pcl::SACSegmentation<pcl::PointXYZI> seg;
+
+        seg.setOptimizeCoefficients (true);
+        seg.setModelType (pcl::SACMODEL_PLANE);
+        seg.setMethodType (pcl::SAC_RANSAC);
+        //seg.setMaxIterations (1000);
+        seg.setDistanceThreshold (0.01);
+        seg.setInputCloud (cloud);
+        seg.setProbability(1.0);
+        seg.segment (*inliers, *coefficients);
+
+        // Create the filtering object
+        pcl::ExtractIndices<pcl::PointXYZI> extract;
+
+        // Extract the inliers
+        extract.setInputCloud (cloud);
+        extract.setIndices (inliers);
+        extract.setNegative (true);
+        extract.filter (*no_ground_cloud);
+
+        extract.setNegative(false);
+        extract.filter(*ground_cloud);
+/**
+        // preparations
+        pcl::SampleConsensusModelPlane<pcl::PointXYZI>::Ptr model_plane (new pcl::SampleConsensusModelPlane<pcl::PointXYZI> (cloud));
+        std::vector<int> ground;
+        //pcl::PointIndices::Ptr ground (new pcl::PointIndices ());
+
+        // RANSAC
+        pcl::RandomSampleConsensus<pcl::PointXYZI> ransac (model_plane);
+        ransac.setDistanceThreshold(0.05);
+        ransac.computeModel();
+        ransac.getInliers(ground);
+
+        // copies all inliers of the model computed to another PointCloud
+        pcl::copyPointCloud (*cloud, ground, *filtered_cloud);
+/**        
+        // extract ground
+        extract.setInputCloud(cloud);
+        extract.setIndices(ground);
+        extract.setNegative(true);
+        extract.filter(*filtered_cloud);
+**/
+        // return cloud
+        //pcl::PointCloud<pcl::PointXYZI> output;
+        //output = *filtered_cloud;
+        //return output;
+    }
+
+    void publish_cloud(pcl::PointCloud<pcl::PointXYZI> output_cloud, pcl::PointCloud<pcl::PointXYZI> filtered_cloud, pcl::PointCloud<pcl::PointXYZI> cut_cloud){
         // set default values of outputcloud
         output_cloud.header.frame_id = "base_footprint";
         //pcl_conversions::toPCL(ros::Time::now(), output_cloud.header.stamp);
@@ -107,6 +177,9 @@ public:
         // for comaprison
         filtered_cloud.header.frame_id = "base_footprint";
         comparepub.publish(filtered_cloud);
+
+        cut_cloud.header.frame_id = "base_footprint";
+        comparepub_1.publish(cut_cloud);
     }
     
 
@@ -174,6 +247,7 @@ private:
     // publisher
     ros::Publisher fusionpub;
     ros::Publisher comparepub;
+    ros::Publisher comparepub_1;
 
     // create msgs
     std_msgs::String debugmsg;
@@ -191,7 +265,7 @@ int main(int argc, char**argv)
     CloudFusionNode node = CloudFusionNode();
     
     // Set rate to 10 hz
-    ros::Rate loop_rate(10);
+    ros::Rate loop_rate(1);
 
     // get transformations  
     tf::TransformListener listener_fr;
@@ -200,37 +274,43 @@ int main(int argc, char**argv)
     tf::TransformListener listener_rl;
     tf::TransformListener listener_tm;
     tf::TransformListener listener_f_liv;
-    
+    bool got_transformations = false;
 
     
     while (ros::ok())
     {
-        // get all Transformations
-        try{
-            listener_fr.lookupTransform("/base_footprint","/velodyne_front_right", ros::Time(0), node.tf_fr);
-            listener_fl.lookupTransform("/base_footprint","/velodyne_front_left", ros::Time(0), node.tf_fl);
-            listener_rr.lookupTransform("/base_footprint","/velodyne_rear_right", ros::Time(0), node.tf_rr);
-            listener_rl.lookupTransform("/base_footprint","/velodyne_rear_left", ros::Time(0), node.tf_rl);
-            listener_tm.lookupTransform("/base_footprint", "/velodyne_top_middle", ros::Time(0), node.tf_tm);
-            listener_f_liv.lookupTransform("/base_footprint","/livox_front", ros::Time(0), node.tf_f_liv);
-        }catch(tf::TransformException ex){
-            ROS_ERROR("%s", ex.what());
+        if (!got_transformations){
+            // get all Transformations
+            try{
+                listener_fr.lookupTransform("/base_footprint","/velodyne_front_right", ros::Time(0), node.tf_fr);
+                listener_fl.lookupTransform("/base_footprint","/velodyne_front_left", ros::Time(0), node.tf_fl);
+                listener_rr.lookupTransform("/base_footprint","/velodyne_rear_right", ros::Time(0), node.tf_rr);
+                listener_rl.lookupTransform("/base_footprint","/velodyne_rear_left", ros::Time(0), node.tf_rl);
+                listener_tm.lookupTransform("/base_footprint", "/velodyne_top_middle", ros::Time(0), node.tf_tm);
+                listener_f_liv.lookupTransform("/base_footprint","/livox_front", ros::Time(0), node.tf_f_liv);
+                got_transformations = true;
+            }catch(tf::TransformException ex){
+                ROS_ERROR("%s", ex.what());
+            }
         }
+        
         // Clouds
         pcl::PointCloud<pcl::PointXYZI> output_cloud;
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZI>);
         pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud (new pcl::PointCloud<pcl::PointXYZI>);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr ground_cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
 
         // for comaprison
         pcl::PointCloud<pcl::PointXYZI> fused_cloud;
-    
+        pcl::PointCloud<pcl::PointXYZI> ground_cloud;
+
         // fuse all input clouds
         output_cloud = node.cloud_fusion(output_cloud);
         fused_cloud = output_cloud;
         *cloud = output_cloud;
 
-        // filter in height
-        *cloud = node.filter_axis(cloud, filtered_cloud, 0.0, 2.0, "z");        // height
+        // filter ROI
+        *cloud = node.filter_axis(cloud, filtered_cloud, -0.5, 2.0, "z");        // height
         *cloud = node.filter_axis(cloud, filtered_cloud, -20.0, 20.0, "x");     // length
         *cloud = node.filter_axis(cloud, filtered_cloud, -5.0, 5.0, "y");       // length
 
@@ -238,10 +318,11 @@ int main(int argc, char**argv)
         *cloud = node.remove_outliers(cloud, filtered_cloud);
 
         // remove ground
-
+        node.remove_ground(cloud, filtered_cloud,ground_cloud_ptr);
+        ground_cloud = *ground_cloud_ptr;
         // publish final cloud
         output_cloud = *cloud;
-        node.publish_cloud(output_cloud, fused_cloud);
+        node.publish_cloud(output_cloud, fused_cloud, ground_cloud);
 
         // clear outputcloud
         output_cloud.clear();
