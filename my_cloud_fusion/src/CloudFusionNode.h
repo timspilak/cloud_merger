@@ -312,11 +312,81 @@ public:
         groundpub.publish(ground_cloud);
         voxelpub.publish(voxel_cloud);
     }
+
     
-    void get_cloud(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud){
-        *cloud = f_liv_trans;
+    // proceed single Pointcloud
+    void proceed_pointcloud(const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr,
+                            const pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_cloud_ptr,
+                            const pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_cloud_ptr,
+                            const pcl::PointCloud<pcl::PointXYZI>::Ptr ground_cloud_ptr,
+                            const int index){
+        
+        // 1.) fuse all input clouds
+        switch (index){
+            case 0 :
+                *cloud_ptr = fr_vel_trans;
+                break;
+            case 1 :
+                *cloud_ptr = fl_vel_trans;
+                break;
+            case 2 :
+                *cloud_ptr = rr_vel_trans;
+                break;
+            case 3 :
+                *cloud_ptr = rl_vel_trans;
+                break;
+            case 4 :
+                *cloud_ptr = tm_vel_trans;
+                break;
+            case 5 :
+                *cloud_ptr = f_liv_trans;
+                break;
+
+        }       
+              
+        // 2.) filter ROI rectangle
+        pcl::PointCloud<pcl::PointXYZI>::Ptr front_cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr mid_cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr rear_cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+        filter_ROI_R(cloud_ptr,front_cloud_ptr, mid_cloud_ptr, rear_cloud_ptr);
+
+        // 3.) remove outliers
+        //node.remove_outliers(filtered_cloud_ptr);
+        remove_outliers(front_cloud_ptr);
+        remove_outliers(mid_cloud_ptr);
+        remove_outliers(rear_cloud_ptr);
+
+        // remove ground front
+        remove_ground(front_cloud_ptr, no_ground_cloud_ptr, ground_cloud_ptr, z_min_ground_front, z_max_ground_front, max_angle_front);
+        pcl::PointCloud<pcl::PointXYZI> ground1;
+        ground1 = *ground_cloud_ptr;
+        pcl::PointCloud<pcl::PointXYZI> noground1;
+        noground1 = *no_ground_cloud_ptr;
+
+        // remove ground mid
+        remove_ground(mid_cloud_ptr, no_ground_cloud_ptr, ground_cloud_ptr, z_min_ground_mid, z_max_ground_mid, max_angle_mid);
+        pcl::PointCloud<pcl::PointXYZI> ground2;
+        ground2 = *ground_cloud_ptr;
+        pcl::PointCloud<pcl::PointXYZI> noground2;
+        noground2 = *no_ground_cloud_ptr;
+        
+        // remove ground rear
+        remove_ground(rear_cloud_ptr, no_ground_cloud_ptr, ground_cloud_ptr, z_min_ground_rear, z_max_ground_rear, max_angle_rear);
+        pcl::PointCloud<pcl::PointXYZI> ground3;
+        ground3 = *ground_cloud_ptr;
+        pcl::PointCloud<pcl::PointXYZI> noground3;
+        noground3 = *no_ground_cloud_ptr;
+
+        // merge Clouds
+        ground1 += ground2;
+        ground1 += ground3;
+        *ground_cloud_ptr = ground1;
+
+        noground1 += noground2;
+        noground1 += noground3;
+        *no_ground_cloud_ptr = noground1;
+
     }
-    
     
     // Transforms
     tf::StampedTransform tf_fr;
