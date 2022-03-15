@@ -34,19 +34,19 @@ const double prob = 0.99;                                                       
 
 // Parameter RANSAC front
 const double max_angle_front = perc2rad(4);                                                 // maximale Winkelabweichung zur Axe in [ Crad ]
-const double z_min_ground_front = -get_z_threshold(front_length, max_angle_front);          // minimale Hoehe fuer RANSAC [ m ]
-const double z_max_ground_front = get_z_threshold(front_length, max_angle_front);           // maximale Hoehe fuer RANSAC [ m ]
+const double z_min_ground_front = -1.5;          // minimale Hoehe fuer RANSAC [ m ]
+const double z_max_ground_front = 1.5;           // maximale Hoehe fuer RANSAC [ m ]
 
 // Parameter RANSAC mid
-const double max_angle_mid = perc2rad(1);                                                 // maximale Winkelabweichung zur Axe in [ Crad ]
-const double z_min_ground_mid = -get_z_threshold(mid_length, max_angle_mid);                // minimale Hoehe fuer RANSAC [ m ]
-const double z_max_ground_mid = get_z_threshold(mid_length, max_angle_mid);                 // maximale Hoehe fuer RANSAC [ m ]
+const double max_angle_mid = perc2rad(2);                                                   // maximale Winkelabweichung zur Axe in [ Crad ]
+const double z_min_ground_mid = -0.5;                // minimale Hoehe fuer RANSAC [ m ]
+const double z_max_ground_mid = 0.5;                 // maximale Hoehe fuer RANSAC [ m ]
 
 
 // Parameter RANSAC rear
 const double max_angle_rear = perc2rad(4);                                                  // maximale Winkelabweichung zur Axe in [ Crad ]
-const double z_min_ground_rear = -get_z_threshold(rear_length, max_angle_rear);             // minimale Hoehe fuer RANSAC [ m ]
-const double z_max_ground_rear = get_z_threshold(rear_length, max_angle_rear);              // maximale Hoehe fuer RANSAC [ m ]
+const double z_min_ground_rear = -0.5;             // minimale Hoehe fuer RANSAC [ m ]
+const double z_max_ground_rear = 0.5;              // maximale Hoehe fuer RANSAC [ m ]
 
 
 // Voxelgrid Filter

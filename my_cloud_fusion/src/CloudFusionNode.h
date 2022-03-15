@@ -312,6 +312,12 @@ public:
         groundpub.publish(ground_cloud);
         voxelpub.publish(voxel_cloud);
     }
+    
+    void get_cloud(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud){
+        *cloud = f_liv_trans;
+    }
+    
+    
     // Transforms
     tf::StampedTransform tf_fr;
     tf::StampedTransform tf_fl;
@@ -362,7 +368,7 @@ private:
     pcl::PointCloud<pcl::PointXYZI> f_liv_trans;
 
     // ROS node
-    ros::NodeHandle node{ "~"};
+    ros::NodeHandle node{ "~" };
 
     // subscriber
     ros:: Subscriber front_right_sub;
