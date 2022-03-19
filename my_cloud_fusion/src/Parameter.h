@@ -24,10 +24,10 @@ const double z_max = 3.0;                                           // maximale 
 
 // Parameter RANSAC general
 const double lane_width =  10.0;                                    // Breite der Punktewolke in [ m ]
-const double mid_length = 10.0;                                     // Laenge der Zone, in der sich das Shuttle befindet in [ m ]
-const double front_length = 55.0;                                   // Laenge der Zone vor dem shuttle in [ m ]
+const double mid_length = 20.0;                                     // Laenge der Zone, in der sich das Shuttle befindet in [ m ]
+const double front_length = 50.0;                                   // Laenge der Zone vor dem shuttle in [ m ]
 const double rear_length = 10.0;                                    // Laenge der Zone hinter dem Shuttle in [ m ]
-const int max_iterations = 1000;                                    // maximale Anzahl Versuche fuer den RANSAC-Algorithmus
+const int max_iterations = 100;                                     // maximale Anzahl Versuche fuer den RANSAC-Algorithmus
 const Eigen::Vector3f axis = Eigen::Vector3f(0.0, 0.0, 1.0);        // Achse zu der rechtwinklig nach einer Ebene gesucht werden soll 
 const double distance_threshold = 0.3;                              // maximale Abweichung zur Ebene um als Inlier zu gelten in [ m ]    
 const double prob = 0.99;                                           // probability of choosing at least one sample free from outliers 0.99 = 99%
@@ -39,14 +39,14 @@ const double z_max_ground_front = 1.5;                              // maximale 
 
 // Parameter RANSAC mid
 const double max_angle_mid = perc2rad(2);                           // maximale Winkelabweichung zur Axe in [ Crad ]
-const double z_min_ground_mid = -0.3;                               // minimale Hoehe fuer RANSAC [ m ]
-const double z_max_ground_mid = 0.3;                                // maximale Hoehe fuer RANSAC [ m ]
+const double z_min_ground_mid = -0.5;                               // minimale Hoehe fuer RANSAC [ m ]
+const double z_max_ground_mid = 0.5;                                // maximale Hoehe fuer RANSAC [ m ]
 
 
 // Parameter RANSAC rear
 const double max_angle_rear = perc2rad(4);                          // maximale Winkelabweichung zur Axe in [ Crad ]
-const double z_min_ground_rear = -0.3;                              // minimale Hoehe fuer RANSAC [ m ]
-const double z_max_ground_rear = 0.3;                               // maximale Hoehe fuer RANSAC [ m ]
+const double z_min_ground_rear = -0.5;                              // minimale Hoehe fuer RANSAC [ m ]
+const double z_max_ground_rear = 0.5;                               // maximale Hoehe fuer RANSAC [ m ]
 
 
 // Voxelgrid Filter

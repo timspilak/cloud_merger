@@ -350,12 +350,6 @@ public:
         pcl::PointCloud<pcl::PointXYZI>::Ptr rear_cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
         filter_ROI_R(cloud_ptr,front_cloud_ptr, mid_cloud_ptr, rear_cloud_ptr);
 
-        // 3.) remove outliers
-        //node.remove_outliers(filtered_cloud_ptr);
-        remove_outliers(front_cloud_ptr);
-        remove_outliers(mid_cloud_ptr);
-        remove_outliers(rear_cloud_ptr);
-
         // remove ground front
         remove_ground(front_cloud_ptr, no_ground_cloud_ptr, ground_cloud_ptr, z_min_ground_front, z_max_ground_front, max_angle_front);
         pcl::PointCloud<pcl::PointXYZI> ground1;
