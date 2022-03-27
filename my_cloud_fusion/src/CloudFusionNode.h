@@ -227,7 +227,9 @@ public:
         // Maximum number of iterations before giving up
         seg.setMaxIterations (max_iterations);
         // Set the axis for which to search for perpendicular planes
-        seg.setAxis(axis); 
+        seg.setAxis(axis);
+        // Set maximum allowed angle between the model normal and the given axis in radians
+        seg.setEpsAngle(max_angle); 
         // Set a allowed deviati double z_threshold;odel threshold
         seg.setDistanceThreshold (distance_threshold);
         seg.setInputCloud (ground_part_ptr);
