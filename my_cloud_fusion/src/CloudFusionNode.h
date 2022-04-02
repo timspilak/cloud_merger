@@ -142,10 +142,13 @@ public:
         *filtered_cloud_ptr = first_part;
     }
     // filter ROI as rectangle
-    void filter_ROI_R(    const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr, 
+    void filter_ROI_R(  const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr, 
                         pcl::PointCloud<pcl::PointXYZI>::Ptr front_cloud_ptr,
                         pcl::PointCloud<pcl::PointXYZI>::Ptr mid_cloud_ptr,
-                        pcl::PointCloud<pcl::PointXYZI>::Ptr rear_cloud_ptr){
+                        pcl::PointCloud<pcl::PointXYZI>::Ptr rear_cloud_ptr,
+                        const double front_length,
+                        const double mid_length,
+                        const double rear_length){
         
         //build the  |, first part
         pcl::PointCloud<pcl::PointXYZI>::Ptr filtered_ptr( new pcl::PointCloud<pcl::PointXYZI>);  
@@ -208,8 +211,12 @@ public:
         zpass2.setFilterFieldName ("z");
         zpass2.setFilterLimits (z_max_ground + 0.01, z_max);
         zpass2.filter (*no_ground_part_ptr);
-        // -----------------------------------------------------------------------------------------
+
+        *ground_cloud_ptr = *ground_part_ptr;
+        *no_ground_cloud_ptr = *no_ground_part_ptr ;
         
+        // -----------------------------------------------------------------------------------------
+        /**
         // RANSAC
         // -----------------------------------------------------------------------------------------
         // preparations
@@ -261,7 +268,7 @@ public:
 
         no_ground += no_ground_part;
 
-        *no_ground_cloud_ptr = no_ground;
+        *no_ground_cloud_ptr = no_ground;**/
         // -----------------------------------------------------------------------------------------
 
     }
@@ -322,8 +329,96 @@ public:
                             const pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_cloud_ptr,
                             const pcl::PointCloud<pcl::PointXYZI>::Ptr ground_cloud_ptr,
                             const int index){
+        double front_length;
+        double mid_length;
+        double rear_length;
+        
+        double z_min_ground_front;
+        double z_max_ground_front;
+        double max_angle_front;
+        
+        double z_min_ground_mid;
+        double z_max_ground_mid;
+        double max_angle_mid;
+        
+        double z_min_ground_rear;
+        double z_max_ground_rear;
+        double max_angle_rear;
+
         
         // 1.) fuse all input clouds
+        // get parameters for sensors (groups)
+        if (index == 0 || index == 1){
+            // velodyne front parameters
+            front_length = vf_front_length;
+            mid_length = vf_mid_length;
+            rear_length = vf_rear_length;
+
+            z_min_ground_front = vf_z_min_ground_front;
+            z_max_ground_front = vf_z_max_ground_front;
+            max_angle_front = vf_max_angle_front;
+
+            z_min_ground_mid = vf_z_min_ground_mid;
+            z_max_ground_mid = vf_z_max_ground_mid;
+            max_angle_mid = vf_max_angle_mid;
+
+            z_min_ground_rear = vf_z_min_ground_rear;
+            z_max_ground_rear = vf_z_max_ground_rear;
+            max_angle_rear = vf_max_angle_rear;
+        }else if (index == 2 || index == 3){
+            // velodyne rear parameters
+            front_length = vr_front_length;
+            mid_length = vr_mid_length;
+            rear_length = vr_rear_length;
+
+            z_min_ground_front = vr_z_min_ground_front;
+            z_max_ground_front = vr_z_max_ground_front;
+            max_angle_front = vr_max_angle_front;
+
+            z_min_ground_mid = vr_z_min_ground_mid;
+            z_max_ground_mid = vr_z_max_ground_mid;
+            max_angle_mid = vr_max_angle_mid;
+
+            z_min_ground_rear = vr_z_min_ground_rear;
+            z_max_ground_rear = vr_z_max_ground_rear;
+            max_angle_rear = vr_max_angle_rear;
+        }else if (index == 4){
+            // velodyne top parameters
+            front_length = vt_front_length;
+            mid_length = vt_mid_length;
+            rear_length = vt_rear_length;
+
+            z_min_ground_front = vt_z_min_ground_front;
+            z_max_ground_front = vt_z_max_ground_front;
+            max_angle_front = vt_max_angle_front;
+
+            z_min_ground_mid = vt_z_min_ground_mid;
+            z_max_ground_mid = vt_z_max_ground_mid;
+            max_angle_mid = vt_max_angle_mid;
+
+            z_min_ground_rear = vt_z_min_ground_rear;
+            z_max_ground_rear = vt_z_max_ground_rear;
+            max_angle_rear = vt_max_angle_rear;
+        }else{
+            // livox parameters
+            front_length = lf_front_length;
+            mid_length = lf_mid_length;
+            rear_length = lf_rear_length;
+
+            z_min_ground_front = lf_z_min_ground_front;
+            z_max_ground_front = lf_z_max_ground_front;
+            max_angle_front = lf_max_angle_front;
+
+            z_min_ground_mid = lf_z_min_ground_mid;
+            z_max_ground_mid = lf_z_max_ground_mid;
+            max_angle_mid = lf_max_angle_mid;
+
+            z_min_ground_rear = lf_z_min_ground_rear;
+            z_max_ground_rear = lf_z_max_ground_rear;
+            max_angle_rear = lf_max_angle_rear;
+        }
+
+        // get pointcloud
         switch (index){
             case 0 :
                 *cloud_ptr = fr_vel_trans;
@@ -343,15 +438,20 @@ public:
             case 5 :
                 *cloud_ptr = f_liv_trans;
                 break;
-
+            default:
+            break;
         }       
               
         // 2.) filter ROI rectangle
         pcl::PointCloud<pcl::PointXYZI>::Ptr front_cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
         pcl::PointCloud<pcl::PointXYZI>::Ptr mid_cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
         pcl::PointCloud<pcl::PointXYZI>::Ptr rear_cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-        filter_ROI_R(cloud_ptr,front_cloud_ptr, mid_cloud_ptr, rear_cloud_ptr);
+        filter_ROI_R(cloud_ptr,front_cloud_ptr, mid_cloud_ptr, rear_cloud_ptr, front_length, mid_length, rear_length);
 
+        // debugging
+        ROS_INFO("front z min %f", z_min_ground_front);
+        ROS_INFO("front z max %f", z_max_ground_front);
+        ROS_INFO("front angle %f", max_angle_front);
         // remove ground front
         remove_ground(front_cloud_ptr, no_ground_cloud_ptr, ground_cloud_ptr, z_min_ground_front, z_max_ground_front, max_angle_front);
         pcl::PointCloud<pcl::PointXYZI> ground1;
@@ -359,6 +459,10 @@ public:
         pcl::PointCloud<pcl::PointXYZI> noground1;
         noground1 = *no_ground_cloud_ptr;
 
+        // debugging
+        ROS_INFO("mid z min %f", z_min_ground_mid);
+        ROS_INFO("mid z max %f", z_max_ground_mid);
+        ROS_INFO("mid angle %f", max_angle_mid);
         // remove ground mid
         remove_ground(mid_cloud_ptr, no_ground_cloud_ptr, ground_cloud_ptr, z_min_ground_mid, z_max_ground_mid, max_angle_mid);
         pcl::PointCloud<pcl::PointXYZI> ground2;
@@ -366,6 +470,10 @@ public:
         pcl::PointCloud<pcl::PointXYZI> noground2;
         noground2 = *no_ground_cloud_ptr;
         
+        // debugging
+        ROS_INFO("rear z min %f", z_min_ground_rear);
+        ROS_INFO("rear z max %f", z_max_ground_rear);
+        ROS_INFO("rear angle %f", max_angle_rear);
         // remove ground rear
         remove_ground(rear_cloud_ptr, no_ground_cloud_ptr, ground_cloud_ptr, z_min_ground_rear, z_max_ground_rear, max_angle_rear);
         pcl::PointCloud<pcl::PointXYZI> ground3;

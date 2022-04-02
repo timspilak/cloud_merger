@@ -63,12 +63,14 @@ int main(int argc, char**argv)
             no_ground_cloud += *no_ground_cloud_ptr;
             ground_cloud += *ground_cloud_ptr;
         }
-        // 3.) remove outliers
-        node.remove_outliers(no_ground_cloud_ptr_out);
         
         *filtered_cloud_ptr_out = filtered_cloud;
         *no_ground_cloud_ptr_out = no_ground_cloud;
         *ground_cloud_ptr_out = ground_cloud;
+
+        // 3.) remove outliers
+        node.remove_outliers(no_ground_cloud_ptr_out);
+
         // 2.) voxelgrid
         node.voxelgrid(no_ground_cloud_ptr_out, voxel_cloud_ptr);        
 
