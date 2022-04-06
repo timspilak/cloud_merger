@@ -40,17 +40,18 @@ int main(int argc, char**argv)
                 ROS_ERROR("%s", ex.what());
             }
         }
-
+        pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+        pcl::PointCloud<pcl::PointXYZI>::Ptr ground_ptr (new pcl::PointCloud<pcl::PointXYZI>);
         // 1.) fuse Pointclouds
-        node.fusePointclouds();
+        node.fusePointclouds(no_ground_ptr, ground_ptr);
 
         // 2.) filter Pointcloud
-        node.filterPointcloud();
+        //node.filterPointcloud();
 
         // 3.) publish Pointcloud
-        node.publishPointcloud();
+        node.publishPointcloud(no_ground_ptr, ground_ptr);
 
-        
+
         // do ROS things
         ros::spinOnce();
         loop_rate.sleep();

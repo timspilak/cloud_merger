@@ -17,19 +17,18 @@ const double min_neighbor = 1;                                          // minim
 
 // Parameter ROI
 // -----------------------------------------------------------------
-const double x_transverse = 20.0;                                       // Laenge des Querbalkens in [ m ]
-const double y_transverse = 25.0;                                       // Breite des Querbalkens in [ m ]
-const double x_longitudinal = 30.0;                                     // Laenge des Laengsbalkens in [ m ]
-const double y_longitudinal = 10.0;                                     // Breite des Laengsbalkens in [ m ]
-const double z_min = -0.5;                                              // minimale Hoehe in [ m ]
-const double z_max = 3.0;                                               // maximale Hoehe im [ m ]
+const double roi_width  = 10.0;                                         // Breite der ROI in [ m ]
+const double roi_length = 75.0;                                         // laenge der ROI in [ m ]
+const double roi_mid = 15;                                              // Abstand des Fzg. Mittelpunkts zum hinteren Ende der ROI in [ m ]
+const double roi_z_min = -0.5;                                          // minimale Hoehe in [ m ]
+const double roi_z_max = 3.0;                                           // maximale Hoehe im [ m ]
 
 // Parameter RANSAC general
 // -----------------------------------------------------------------
 const double lane_width =  10.0;                                        // Breite der Punktewolke in [ m ]
 const int max_iterations = 1000;                                        // maximale Anzahl Versuche fuer den RANSAC-Algorithmus
 const Eigen::Vector3f axis = Eigen::Vector3f(0.0, 0.0, 1.0);            // Achse zu der rechtwinklig nach einer Ebene gesucht werden soll 
-const double distance_threshold = 0.05;                                  // maximale Abweichung zur Ebene um als Inlier zu gelten in [ m ]    
+const double distance_threshold = 0.3;                                  // maximale Abweichung zur Ebene um als Inlier zu gelten in [ m ]    
 const double prob = 0.99;                                               // probability of choosing at least one sample free from outliers 0.99 = 99%
 
 // Parameter  Velodyne front
