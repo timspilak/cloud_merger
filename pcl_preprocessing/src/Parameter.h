@@ -28,7 +28,7 @@ const double roi_z_max = 3.0;                                           // maxim
 const double lane_width =  10.0;                                        // Breite der Punktewolke in [ m ]
 const int max_iterations = 1000;                                        // maximale Anzahl Versuche fuer den RANSAC-Algorithmus
 const Eigen::Vector3f axis = Eigen::Vector3f(0.0, 0.0, 1.0);            // Achse zu der rechtwinklig nach einer Ebene gesucht werden soll 
-const double distance_threshold = 0.3;                                  // maximale Abweichung zur Ebene um als Inlier zu gelten in [ m ]    
+const double distance_threshold = 0.4;                                  // maximale Abweichung zur Ebene um als Inlier zu gelten in [ m ]    
 const double prob = 0.99;                                               // probability of choosing at least one sample free from outliers 0.99 = 99%
 
 // Parameter  Velodyne front
@@ -77,31 +77,22 @@ const double vt_max_angle_front = perc2rad(5);                          // maxim
 const double vt_z_min_ground_front = -1.5;                              // minimale Hoehe fuer RANSAC [ m ]
 const double vt_z_max_ground_front = 1.5;                               // maximale Hoehe fuer RANSAC [ m ]
 
-const double vt_max_angle_mid = perc2rad(3);                            // maximale Winkelabweichung zur Axe in [ Crad ]
-const double vt_z_min_ground_mid = -0.5;                                // minimale Hoehe fuer RANSAC [ m ]
-const double vt_z_max_ground_mid = 0.5;                                 // maximale Hoehe fuer RANSAC [ m ]
-
 const double vt_max_angle_rear = perc2rad(5);                           // maximale Winkelabweichung zur Axe in [ Crad ]
 const double vt_z_min_ground_rear = -0.5;                               // minimale Hoehe fuer RANSAC [ m ]
 const double vt_z_max_ground_rear = 0.5;                                // maximale Hoehe fuer RANSAC [ m ]
 
 // Parameter  livox front
 // -----------------------------------------------------------------
-const double lf_front_length = 10.0;                                    // Laenge der Zone vor dem shuttle in [ m ]
-const double lf_mid_length = 20.0;                                      // Laenge der Zone, in der sich das Shuttle befindet in [ m ]
-const double lf_rear_length = 0.0;                                      // Laenge der Zone hinter dem Shuttle in [ m ]
+const double l_front_length = 10.0;                                    // Laenge der Zone vor dem shuttle in [ m ]
+const double l_mid_length = 10.0;                                      // Laenge der Zone, in der sich das Shuttle befindet in [ m ]
 
-const double lf_max_angle_front = perc2rad(3);                          // maximale Winkelabweichung zur Axe in [ Crad ]
-const double lf_z_min_ground_front = -0.5;                              // minimale Hoehe fuer RANSAC [ m ]
-const double lf_z_max_ground_front = 0.5;                               // maximale Hoehe fuer RANSAC [ m ]
+const double l_max_angle_front = perc2rad(3);                          // maximale Winkelabweichung zur Axe in [ Crad ]
+const double l_z_min_ground_front = -0.5;                              // minimale Hoehe fuer RANSAC [ m ]
+const double l_z_max_ground_front = 0.5;                               // maximale Hoehe fuer RANSAC [ m ]
 
-const double lf_max_angle_mid = perc2rad(3);                            // maximale Winkelabweichung zur Axe in [ Crad ]
-const double lf_z_min_ground_mid = -0.5;                                // minimale Hoehe fuer RANSAC [ m ]
-const double lf_z_max_ground_mid = 0.5;                                 // maximale Hoehe fuer RANSAC [ m ]
-
-const double lf_max_angle_rear = perc2rad(5);                           // maximale Winkelabweichung zur Axe in [ Crad ]
-const double lf_z_min_ground_rear = -0.5;                               // minimale Hoehe fuer RANSAC [ m ]
-const double lf_z_max_ground_rear = 0.5;                                // maximale Hoehe fuer RANSAC [ m ]
+const double l_max_angle_mid = perc2rad(3);                            // maximale Winkelabweichung zur Axe in [ Crad ]
+const double l_z_min_ground_mid = -0.5;                                // minimale Hoehe fuer RANSAC [ m ]
+const double l_z_max_ground_mid = 0.5;                                 // maximale Hoehe fuer RANSAC [ m ]
 
 // Voxelgrid Filter
 // -----------------------------------------------------------------
