@@ -26,9 +26,9 @@ const double roi_z_max = 3.0;                                           // maxim
 // Parameter RANSAC general
 // -----------------------------------------------------------------
 const double lane_width =  10.0;                                        // Breite der Punktewolke in [ m ]
-const int max_iterations = 1000;                                        // maximale Anzahl Versuche fuer den RANSAC-Algorithmus
+const int max_iterations = 10000;                                        // maximale Anzahl Versuche fuer den RANSAC-Algorithmus
 const Eigen::Vector3f axis = Eigen::Vector3f(0.0, 0.0, 1.0);            // Achse zu der rechtwinklig nach einer Ebene gesucht werden soll 
-const double distance_threshold = 0.4;                                  // maximale Abweichung zur Ebene um als Inlier zu gelten in [ m ]    
+const double distance_threshold = 0.3;                                  // maximale Abweichung zur Ebene um als Inlier zu gelten in [ m ]    
 const double prob = 0.99;                                               // probability of choosing at least one sample free from outliers 0.99 = 99%
 
 // Parameter  Velodyne front
@@ -37,15 +37,15 @@ const double vf_front_length = 15.0;                                    // Laeng
 const double vf_mid_length = 10.0;                                      // Laenge der Zone, in der sich das Shuttle befindet in [ m ]
 const double vf_rear_length = 10.0;                                     // Laenge der Zone hinter dem Shuttle in [ m ]
 
-const double vf_max_angle_front = perc2rad(3);                          // maximale Winkelabweichung zur Axe in [ Crad ]
+const double vf_max_angle_front = perc2rad(3);                          // maximale Winkelabweichung zur Axe in [ rad ]
 const double vf_z_min_ground_front = -0.5;                              // minimale Hoehe fuer RANSAC [ m ]
 const double vf_z_max_ground_front = 0.5;                               // maximale Hoehe fuer RANSAC [ m ]
 
-const double vf_max_angle_mid = perc2rad(1);                            // maximale Winkelabweichung zur Axe in [ Crad ]
+const double vf_max_angle_mid = perc2rad(0.5);                            // maximale Winkelabweichung zur Axe in [ rad ]
 const double vf_z_min_ground_mid = -0.2;                                // minimale Hoehe fuer RANSAC [ m ]
 const double vf_z_max_ground_mid = 0.2;                                 // maximale Hoehe fuer RANSAC [ m ]
 
-const double vf_max_angle_rear = perc2rad(3);                           // maximale Winkelabweichung zur Axe in [ Crad ]
+const double vf_max_angle_rear = perc2rad(3);                           // maximale Winkelabweichung zur Axe in [ rad ]
 const double vf_z_min_ground_rear = -0.5;                               // minimale Hoehe fuer RANSAC [ m ]
 const double vf_z_max_ground_rear = 0.5;                                // maximale Hoehe fuer RANSAC [ m ]
 
@@ -55,15 +55,15 @@ const double vr_front_length = 10.0;                                    // Laeng
 const double vr_mid_length = 10.0;                                      // Laenge der Zone, in der sich das Shuttle befindet in [ m ]
 const double vr_rear_length = 15.0;                                     // Laenge der Zone hinter dem Shuttle in [ m ]
 
-const double vr_max_angle_front = perc2rad(3);                          // maximale Winkelabweichung zur Axe in [ Crad ]
+const double vr_max_angle_front = perc2rad(3);                          // maximale Winkelabweichung zur Axe in [ rad ]
 const double vr_z_min_ground_front = -0.5;                              // minimale Hoehe fuer RANSAC [ m ]
 const double vr_z_max_ground_front = 0.5;                               // maximale Hoehe fuer RANSAC [ m ]
 
-const double vr_max_angle_mid = perc2rad(1);                            // maximale Winkelabweichung zur Axe in [ Crad ]
+const double vr_max_angle_mid = perc2rad(0.5);                            // maximale Winkelabweichung zur Axe in [ rad ]
 const double vr_z_min_ground_mid = -0.2;                                // minimale Hoehe fuer RANSAC [ m ]
 const double vr_z_max_ground_mid = 0.2;                                 // maximale Hoehe fuer RANSAC [ m ]
 
-const double vr_max_angle_rear = perc2rad(3);                           // maximale Winkelabweichung zur Axe in [ Crad ]
+const double vr_max_angle_rear = perc2rad(3);                           // maximale Winkelabweichung zur Axe in [ rad ]
 const double vr_z_min_ground_rear = -0.5;                               // minimale Hoehe fuer RANSAC [ m ]
 const double vr_z_max_ground_rear = 0.5;                                // maximale Hoehe fuer RANSAC [ m ]
 
@@ -71,26 +71,26 @@ const double vr_z_max_ground_rear = 0.5;                                // maxim
 // -----------------------------------------------------------------
 const double vt_front_length = 40.0;                                    // Laenge der Zone vor dem shuttle in [ m ]
 const double vt_mid_length = 40.0;                                      // Laenge der Zone, in der sich das Shuttle befindet in [ m ]
-const double vt_rear_length = 0.0;                                     // Laenge der Zone hinter dem Shuttle in [ m ]
+const double vt_rear_length = 40.0;                                     // Laenge der Zone hinter dem Shuttle in [ m ]
 
-const double vt_max_angle_front = perc2rad(5);                          // maximale Winkelabweichung zur Axe in [ Crad ]
-const double vt_z_min_ground_front = -1.5;                              // minimale Hoehe fuer RANSAC [ m ]
-const double vt_z_max_ground_front = 1.5;                               // maximale Hoehe fuer RANSAC [ m ]
+const double vt_max_angle_front = perc2rad(3);                          // maximale Winkelabweichung zur Axe in [ rad ]
+const double vt_z_min_ground_front = -1.0;                              // minimale Hoehe fuer RANSAC [ m ]
+const double vt_z_max_ground_front = 1.0;                               // maximale Hoehe fuer RANSAC [ m ]
 
-const double vt_max_angle_rear = perc2rad(5);                           // maximale Winkelabweichung zur Axe in [ Crad ]
-const double vt_z_min_ground_rear = -0.5;                               // minimale Hoehe fuer RANSAC [ m ]
-const double vt_z_max_ground_rear = 0.5;                                // maximale Hoehe fuer RANSAC [ m ]
+const double vt_max_angle_rear = perc2rad(3);                           // maximale Winkelabweichung zur Axe in [ rad ]
+const double vt_z_min_ground_rear = -1.0;                               // minimale Hoehe fuer RANSAC [ m ]
+const double vt_z_max_ground_rear = 1.0;                                // maximale Hoehe fuer RANSAC [ m ]
 
 // Parameter  livox front
 // -----------------------------------------------------------------
 const double l_front_length = 10.0;                                    // Laenge der Zone vor dem shuttle in [ m ]
 const double l_mid_length = 10.0;                                      // Laenge der Zone, in der sich das Shuttle befindet in [ m ]
 
-const double l_max_angle_front = perc2rad(3);                          // maximale Winkelabweichung zur Axe in [ Crad ]
+const double l_max_angle_front = perc2rad(3);                          // maximale Winkelabweichung zur Axe in [ rad ]
 const double l_z_min_ground_front = -0.5;                              // minimale Hoehe fuer RANSAC [ m ]
 const double l_z_max_ground_front = 0.5;                               // maximale Hoehe fuer RANSAC [ m ]
 
-const double l_max_angle_mid = perc2rad(3);                            // maximale Winkelabweichung zur Axe in [ Crad ]
+const double l_max_angle_mid = perc2rad(3);                            // maximale Winkelabweichung zur Axe in [ rad ]
 const double l_z_min_ground_mid = -0.5;                                // minimale Hoehe fuer RANSAC [ m ]
 const double l_z_max_ground_mid = 0.5;                                 // maximale Hoehe fuer RANSAC [ m ]
 

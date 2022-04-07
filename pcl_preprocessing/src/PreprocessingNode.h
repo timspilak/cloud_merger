@@ -56,7 +56,7 @@ public:
         front_left_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/velodyne/front_left/velodyne_points", 1, &PreprocessingNode::addFLVelodyne, this);
         rear_right_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/velodyne/rear_right/velodyne_points", 1, &PreprocessingNode::addRRVelodyne, this);
         rear_left_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/velodyne/rear_left/velodyne_points", 1, &PreprocessingNode::addRLVelodyne, this);
-        //top_middle_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/velodyne/top_middle/velodyne_points", 1, &PreprocessingNode::addTMVelodyne, this);
+        top_middle_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/velodyne/top_middle/velodyne_points", 1, &PreprocessingNode::addTMVelodyne, this);
         front_livox_sub = node.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/livoxfront/livox/lidar", 1, &PreprocessingNode::addLiv, this);
     
     }
@@ -82,6 +82,13 @@ public:
         ypass.setFilterFieldName ("y");
         ypass.setFilterLimits (-roi_width/2, roi_width/2);
         ypass.filter (*cloud_ROI_ptr);
+
+        // filter in length
+        pcl::PassThrough<pcl::PointXYZI> xpass;
+        xpass.setInputCloud (cloud_ROI_ptr);
+        xpass.setFilterFieldName ("x");
+        xpass.setFilterLimits (-roi_mid, roi_length-roi_mid);
+        xpass.filter (*cloud_ROI_ptr);
 
     }
     /**
@@ -116,87 +123,92 @@ public:
      * @param max_angle             maximum angle of the searched plane in [ rad ]
      */
 
-    void removeGround( const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr, 
+    void removeGround(  const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr, 
                         pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_cloud_ptr,
                         pcl::PointCloud<pcl::PointXYZI>::Ptr ground_cloud_ptr,
                         const double z_min_ground, 
                         const double z_max_ground,
                         const double max_angle){
         
-        // divide pointcloud
-        // -----------------------------------------------------------------------------------------
+        // 1.) divide pointcloud
         pcl::PointCloud<pcl::PointXYZI>::Ptr ground_part_ptr (new pcl::PointCloud<pcl::PointXYZI>);
         pcl::PassThrough<pcl::PointXYZI> zpass;
         zpass.setInputCloud (cloud_ptr);
         zpass.setFilterFieldName ("z");
         zpass.setFilterLimits (z_min_ground, z_max_ground);
-        zpass.filter (*ground_part_ptr);
+        zpass.filter (*ground_cloud_ptr);
 
         pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_part_ptr (new pcl::PointCloud<pcl::PointXYZI>);
         pcl::PassThrough<pcl::PointXYZI> zpass2;
         zpass2.setInputCloud (cloud_ptr);
         zpass2.setFilterFieldName ("z");
         zpass2.setFilterLimits (z_max_ground + 0.01, roi_z_max);
-        zpass2.filter (*no_ground_part_ptr);
+        zpass2.filter (*no_ground_cloud_ptr);
        
-        // -----------------------------------------------------------------------------------------
         
-        // RANSAC
-        // -----------------------------------------------------------------------------------------
-        // preparations
-        pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients ());
-        pcl::PointIndices::Ptr inliers (new pcl::PointIndices ());
+        // 2.) RANSAC
+        // // preparations
+        // pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients ());
+        // pcl::PointIndices::Ptr inliers (new pcl::PointIndices ());
 
-        // Create the segmentation object
-        pcl::SACSegmentation<pcl::PointXYZI> seg;
+        // // Create the segmentation object
+        // pcl::SACSegmentation<pcl::PointXYZI> seg;
 
-        seg.setOptimizeCoefficients (true);
-        // set the modeltype as plane
-        seg.setModelType (pcl::SACMODEL_PLANE);
-        // set the method for segmentation
-        seg.setMethodType (pcl::SAC_RANSAC);
-        // Maximum number of iterations before giving up
-        seg.setMaxIterations (max_iterations);
-        // Set the axis for which to search for perpendicular planes
-        seg.setAxis(axis);
-        // Set maximum allowed angle between the model normal and the given axis in radians
-        seg.setEpsAngle(max_angle); 
-        // Set a allowed defusePointcloudsviati double z_threshold;odel threshold
-        seg.setDistanceThreshold (distance_threshold);
-        seg.setInputCloud (ground_part_ptr);
-        // Set the probability of choosing at least one sample free from outliers. 
-        seg.setProbability(prob);
-        seg.segment (*inliers, *coefficients);
-        // -----------------------------------------------------------------------------------------
-        // Extract inliers / outlieres
-        // -----------------------------------------------------------------------------------------
-        // Create the filtering object
-        pcl::ExtractIndices<pcl::PointXYZI> extract;
+        // seg.setOptimizeCoefficients (true);
+        // // set the modeltype as plane
+        // seg.setModelType (pcl::SACMODEL_PLANE);
+        // // set the method for segmentation
+        // seg.setMethodType (pcl::SAC_RANSAC);
+        // // Maximum number of iterations before giving up
+        // seg.setMaxIterations (max_iterations);
+        // // Set the axis for which to search for perpendicular planes
+        // seg.setAxis(axis);
+        // // Set maximum allowed angle between the model normal and the given axis in radians
+        // seg.setEpsAngle(max_angle); 
+        // // Set a allowed defusePointcloudsviati double z_threshold;odel threshold
+        // seg.setDistanceThreshold (distance_threshold);
+        // seg.setInputCloud (ground_part_ptr);
+        // // Set the probability of choosing at least one sample free from outliers. 
+        // seg.setProbability(prob);
+        // seg.segment (*inliers, *coefficients);
 
-        // Extract the inliers
-        extract.setInputCloud (ground_part_ptr);
-        extract.setIndices (inliers);
-        extract.setNegative (true);
-        extract.filter (*no_ground_cloud_ptr);
+        // // 3.) Extract inliers / outlieres
+        // // Create the filtering object
+        // pcl::ExtractIndices<pcl::PointXYZI> extract;
 
-        extract.setNegative(false);
-        extract.filter(*ground_cloud_ptr);
-        // -----------------------------------------------------------------------------------------
+        // // Extract the inliers
+        // extract.setInputCloud (ground_part_ptr);
+        // extract.setIndices (inliers);
+        // extract.setNegative (true);
+        // extract.filter (*no_ground_cloud_ptr);
 
-        // merge clouds
-        // -----------------------------------------------------------------------------------------
-        pcl::PointCloud<pcl::PointXYZI> no_ground;
-        no_ground = *no_ground_cloud_ptr;
-        pcl::PointCloud<pcl::PointXYZI> no_ground_part;
-        no_ground_part = *no_ground_part_ptr;
+        // extract.setNegative(false);
+        // extract.filter(*ground_cloud_ptr);
 
-        no_ground += no_ground_part;
+        // // merge clouds
 
-        *no_ground_cloud_ptr = no_ground;
-        // -----------------------------------------------------------------------------------------
-
+        // *no_ground_cloud_ptr += *no_ground_part_ptr;
     }
 
+    void removeGroundMid(  const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr, 
+                        pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_cloud_ptr,
+                        pcl::PointCloud<pcl::PointXYZI>::Ptr ground_cloud_ptr,
+                        const double z_min_ground, 
+                        const double z_max_ground){
+        
+
+        pcl::PassThrough<pcl::PointXYZI> zpass;
+        zpass.setInputCloud (cloud_ptr);
+        zpass.setFilterFieldName ("z");
+        zpass.setFilterLimits (z_min_ground, z_max_ground);
+        zpass.filter (*ground_cloud_ptr);
+
+        pcl::PassThrough<pcl::PointXYZI> zpass2;
+        zpass2.setInputCloud (cloud_ptr);
+        zpass2.setFilterFieldName ("z");
+        zpass2.setFilterLimits (z_max_ground + 0.01, roi_z_max);
+        zpass2.filter (*no_ground_cloud_ptr);
+    }
     /**
      * @brief fuse all pointclouds if they are available
      * 
@@ -316,14 +328,12 @@ private:
      * 
      * @param input raw pointcloud from Sensor
      */
-    void addFRVelodyne(const pcl::PointCloud<pcl::PointXYZI> input){ // ::ConstPtr& 
+    void addFRVelodyne(const pcl::PointCloud<pcl::PointXYZI> input){ 
         
         // 1.) transform Pointcloud
         tf::Transform transform = tf::Transform(tf_fr.getRotation(), tf_fr.getOrigin());
-        pcl::PointCloud<pcl::PointXYZI> fr_vel_trans;        
-        pcl_ros::transformPointCloud(input, fr_vel_trans, transform);
-        pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-        *cloud_ptr = fr_vel_trans;
+        pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>); 
+        pcl_ros::transformPointCloud(input, *cloud_ptr, transform);
 
         // 2.) filter ROI
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ROI_ptr (new pcl::PointCloud<pcl::PointXYZI>);
@@ -338,14 +348,21 @@ private:
         // 3.1) front
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_front_ptr (new pcl::PointCloud<pcl::PointXYZI>);
         getCloudPart(cloud_ROI_ptr, cloud_front_ptr, vf_front_length, vf_mid_length/2);
-        removeGround(cloud_front_ptr, no_ground_ptr, ground_ptr,vf_z_min_ground_front, vf_z_max_ground_front, vf_max_angle_front);
+        removeGround(cloud_front_ptr, no_ground_ptr, ground_ptr, vf_z_min_ground_front, vf_z_max_ground_front, vf_max_angle_front);
+        ROS_INFO("max angle front in rad: %f", vf_max_angle_front);
         no_ground = *no_ground_ptr;
         ground = *ground_ptr;
         
         // 3.2) mid
+        // pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_mid_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+        // getCloudPart(cloud_ROI_ptr, cloud_mid_ptr, vf_mid_length, -vf_mid_length/2);
+        // removeGround(cloud_mid_ptr, no_ground_ptr, ground_ptr, vf_z_min_ground_mid, vf_z_max_ground_mid, vf_max_angle_mid);
+        // no_ground += *no_ground_ptr;
+        // ground += *ground_ptr;
+        // 3.2) mid alternativ
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_mid_ptr (new pcl::PointCloud<pcl::PointXYZI>);
         getCloudPart(cloud_ROI_ptr, cloud_mid_ptr, vf_mid_length, -vf_mid_length/2);
-        removeGround(cloud_mid_ptr, no_ground_ptr, ground_ptr, vf_z_min_ground_mid, vf_z_max_ground_mid, vf_max_angle_mid);
+        removeGroundMid(cloud_mid_ptr, no_ground_ptr, ground_ptr, vf_z_min_ground_mid, vf_z_max_ground_mid);
         no_ground += *no_ground_ptr;
         ground += *ground_ptr;
 
@@ -371,10 +388,8 @@ private:
         
         // 1.) transform Pointcloud
         tf::Transform transform = tf::Transform(tf_fl.getRotation(), tf_fl.getOrigin());
-        pcl::PointCloud<pcl::PointXYZI> fl_vel_trans;   
-        pcl_ros::transformPointCloud(input, fl_vel_trans, transform);
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-        *cloud_ptr = fl_vel_trans;
+        pcl_ros::transformPointCloud(input, *cloud_ptr, transform);
 
         // 2.) filter ROI
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ROI_ptr (new pcl::PointCloud<pcl::PointXYZI>);
@@ -399,6 +414,12 @@ private:
         removeGround(cloud_mid_ptr, no_ground_ptr, ground_ptr, vf_z_min_ground_mid, vf_z_max_ground_mid, vf_max_angle_mid);
         no_ground += *no_ground_ptr;
         ground += *ground_ptr;
+        // 3.2) mid alternative
+        // pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_mid_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+        // getCloudPart(cloud_ROI_ptr, cloud_mid_ptr, vf_mid_length, -vf_mid_length/2);
+        // removeGroundMid(cloud_mid_ptr, no_ground_ptr, ground_ptr, vf_z_min_ground_mid, vf_z_max_ground_mid);
+        // no_ground += *no_ground_ptr;
+        // ground += *ground_ptr;
 
         // 3.3) rear
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_rear_ptr (new pcl::PointCloud<pcl::PointXYZI>);
@@ -422,10 +443,8 @@ private:
         
         // 1.) transform Pointcloud
         tf::Transform transform = tf::Transform(tf_rr.getRotation(), tf_rr.getOrigin());
-        pcl::PointCloud<pcl::PointXYZI> rr_vel_trans;
-        pcl_ros::transformPointCloud(input, rr_vel_trans, transform);
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-        *cloud_ptr = rr_vel_trans;
+        pcl_ros::transformPointCloud(input, *cloud_ptr, transform);
 
         // 2.) filter ROI
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ROI_ptr (new pcl::PointCloud<pcl::PointXYZI>);
@@ -450,6 +469,12 @@ private:
         removeGround(cloud_mid_ptr, no_ground_ptr, ground_ptr, vr_z_min_ground_mid, vr_z_max_ground_mid, vr_max_angle_mid);
         no_ground += *no_ground_ptr;
         ground += *ground_ptr;
+        // 3.2) mid alternative
+        // pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_mid_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+        // getCloudPart(cloud_ROI_ptr, cloud_mid_ptr, vr_mid_length, -vr_mid_length/2);
+        // removeGroundMid(cloud_mid_ptr, no_ground_ptr, ground_ptr, vr_z_min_ground_mid, vr_z_max_ground_mid);
+        // no_ground += *no_ground_ptr;
+        // ground += *ground_ptr;
 
         // 3.3) rear
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_rear_ptr (new pcl::PointCloud<pcl::PointXYZI>);
@@ -473,10 +498,9 @@ private:
         
         // 1.) transform Pointcloud
         tf::Transform transform = tf::Transform(tf_rl.getRotation(), tf_rl.getOrigin());
-        pcl::PointCloud<pcl::PointXYZI> rl_vel_trans;
-        pcl_ros::transformPointCloud(input, rl_vel_trans, transform);
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-        *cloud_ptr = rl_vel_trans;
+        pcl_ros::transformPointCloud(input, *cloud_ptr, transform);
+
 
         // 2.) filter ROI
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ROI_ptr (new pcl::PointCloud<pcl::PointXYZI>);
@@ -501,6 +525,12 @@ private:
         removeGround(cloud_mid_ptr, no_ground_ptr, ground_ptr, l_z_min_ground_mid, l_z_max_ground_mid, l_max_angle_mid);
         no_ground += *no_ground_ptr;
         ground += *ground_ptr;
+        // 3.2) mid alternative
+        // pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_mid_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+        // getCloudPart(cloud_ROI_ptr, cloud_mid_ptr, vr_mid_length, -vr_mid_length/2);
+        // removeGroundMid(cloud_mid_ptr, no_ground_ptr, ground_ptr, l_z_min_ground_mid, l_z_max_ground_mid);
+        // no_ground += *no_ground_ptr;
+        // ground += *ground_ptr;
 
         // 3.3) rear
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_rear_ptr (new pcl::PointCloud<pcl::PointXYZI>);
@@ -524,10 +554,8 @@ private:
         
         // 1.) transform Pointcloud
         tf::Transform transform = tf::Transform(tf_tm.getRotation(), tf_tm.getOrigin());
-        pcl::PointCloud<pcl::PointXYZI> tm_vel_trans;
-        pcl_ros::transformPointCloud(input, tm_vel_trans, transform);
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-        *cloud_ptr = tm_vel_trans;
+        pcl_ros::transformPointCloud(input, *cloud_ptr, transform);
 
         // 2.) filter ROI
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ROI_ptr (new pcl::PointCloud<pcl::PointXYZI>);
@@ -569,10 +597,8 @@ private:
         
         // 1.) transform Pointcloud
         tf::Transform transform = tf::Transform(tf_f_liv.getRotation(), tf_f_liv.getOrigin());
-        pcl::PointCloud<pcl::PointXYZI> f_liv_trans;
-        pcl_ros::transformPointCloud(input, f_liv_trans, transform);
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-        *cloud_ptr = f_liv_trans;
+        pcl_ros::transformPointCloud(input, *cloud_ptr, transform);
 
         // 2.) filter ROI
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ROI_ptr (new pcl::PointCloud<pcl::PointXYZI>);

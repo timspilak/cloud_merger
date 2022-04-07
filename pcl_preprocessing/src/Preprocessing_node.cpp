@@ -33,13 +33,14 @@ int main(int argc, char**argv)
                 listener_fl.lookupTransform("/base_footprint","/velodyne_front_left", ros::Time(0), node.tf_fl);
                 listener_rr.lookupTransform("/base_footprint","/velodyne_rear_right", ros::Time(0), node.tf_rr);
                 listener_rl.lookupTransform("/base_footprint","/velodyne_rear_left", ros::Time(0), node.tf_rl);
-                //listener_tm.lookupTransform("/base_footprint", "/velodyne_top_middle", ros::Time(0), node.tf_tm);
+                listener_tm.lookupTransform("/base_footprint", "/velodyne_top_middle", ros::Time(0), node.tf_tm);
                 listener_f_liv.lookupTransform("/base_footprint","/livox_front", ros::Time(0), node.tf_f_liv);
                 got_transformations = true;
             }catch(tf::TransformException ex){
                 ROS_ERROR("%s", ex.what());
             }
         }
+
         pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_ptr (new pcl::PointCloud<pcl::PointXYZI>);
         pcl::PointCloud<pcl::PointXYZI>::Ptr ground_ptr (new pcl::PointCloud<pcl::PointXYZI>);
         pcl::PointCloud<pcl::PointXYZI>::Ptr voxel_cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
@@ -54,8 +55,7 @@ int main(int argc, char**argv)
 
         // 4.) publish Pointcloud
         node.publishPointcloud(no_ground_ptr, ground_ptr, voxel_cloud_ptr);
-
-
+ 
         // do ROS things
         ros::spinOnce();
         loop_rate.sleep();
