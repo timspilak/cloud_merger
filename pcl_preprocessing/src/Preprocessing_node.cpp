@@ -7,7 +7,8 @@ int main(int argc, char**argv)
 {
     // initialize ROS
     ros::init(argc, argv, "Preprocessing_node"); // name of node
-    
+    // ros:: asyncSpinner 
+    // wichtig wait for shutdown
     // create ROS-node
     PreprocessingNode node = PreprocessingNode();
     
