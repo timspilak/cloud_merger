@@ -1,4 +1,4 @@
 <launch>
     <!-- start preprocessing node -->
-    <node pkg="pcl_preprocessing" name ="pcl_preprocession"  type="Preprocessing_node" output="screen" required="true"/>
+    <node pkg="pcl_preprocessing" name ="pcl_preprocession"  type="pc_preprocessing_main" output="screen" required="true"/>
 </launch>

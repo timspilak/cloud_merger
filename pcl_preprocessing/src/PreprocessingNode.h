@@ -501,7 +501,7 @@ private:
         no_ground = *no_ground_ptr;
         ground = *ground_ptr;
 
-        // 3.3) rear
+        // 3.2) rear
         pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_rear_ptr (new pcl::PointCloud<pcl::PointXYZI>);
         getCloudPart(cloud_ROI_ptr, cloud_rear_ptr, vr_rear_length, vr_deviation_mid_point - vr_rear_length);
         removeGround(cloud_rear_ptr, no_ground_ptr, ground_ptr, vr_z_min_ground_rear, vr_z_max_ground_rear, vr_max_angle_rear);

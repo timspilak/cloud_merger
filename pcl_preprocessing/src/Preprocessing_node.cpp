@@ -27,9 +27,11 @@ int main(int argc, char**argv)
     
     while (ros::ok())
     {
-        if (!got_transformations){
+        if (!got_transformations)
+        {
             // get all Transformations
-            try{
+            try
+            {
                 listener_fr.lookupTransform("/base_footprint","/velodyne_front_right", ros::Time(0), node.tf_fr);
                 listener_fl.lookupTransform("/base_footprint","/velodyne_front_left", ros::Time(0), node.tf_fl);
                 listener_rr.lookupTransform("/base_footprint","/velodyne_rear_right", ros::Time(0), node.tf_rr);
@@ -37,7 +39,9 @@ int main(int argc, char**argv)
                 listener_tm.lookupTransform("/base_footprint", "/velodyne_top_middle", ros::Time(0), node.tf_tm);
                 listener_f_liv.lookupTransform("/base_footprint","/livox_front", ros::Time(0), node.tf_f_liv);
                 got_transformations = true;
-            }catch(tf::TransformException ex){
+            }
+            catch(tf::TransformException ex)
+            {
                 ROS_ERROR("%s", ex.what());
             }
         }

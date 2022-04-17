@@ -139,8 +139,8 @@ include_directories(${PCL_INCLUDE_DIRS})
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/pcl_preprocessing_node.cpp)
-add_executable(Preprocessing_node
-  src/Preprocessing_node.cpp
+add_executable(pc_preprocessing_main
+  src/pc_preprocessing_main.cpp
 )
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -156,7 +156,7 @@ add_executable(Preprocessing_node
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(Preprocessing_node
+target_link_libraries(pc_preprocessing_main
   ${catkin_LIBRARIES}
 #  ${PCL_LIBRARIES}
 )
