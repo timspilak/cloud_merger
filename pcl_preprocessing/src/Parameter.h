@@ -28,7 +28,7 @@ const int points_per_voxel = 2;                                         // minim
 const double voxel_size = 0.1;                                          // edge length of each voxel [ m ]
 
 // Parameter ROI
-const double roi_width  = 15.0;                                         // width of ROI [ m ]
+const double roi_width  = 10.0;                                         // width of ROI [ m ]
 const double roi_length = 75.0;                                         // lenght of ROI [ m ]
 const double roi_mid = 15;                                              // distance from rear end of ROI to base_footprint [ m ]
 const double roi_z_min = -0.5;                                          // minimum hight of ROI [ m ]
@@ -37,32 +37,31 @@ const double roi_z_max = 3.0;                                           // maxim
 // Parameter RANSAC general
 const int max_iterations = 1000;                                        // maximum attempts of RANSAC-algorithm
 const Eigen::Vector3f axis = Eigen::Vector3f(0.0, 0.0, 1.0);            // Axis perpendicular to which a plane is to be searched for 
-const double distance_threshold = 0.1;                                  // maximum deviation from the plane to be considered as inlier in [ m ]    
+const double distance_threshold = 0.3;                                  // maximum deviation from the plane to be considered as inlier in [ m ]    
 const double prob = 0.99;                                               // probability of choosing at least one sample free from outliers 0.99 = 99%
-const double max_angle = perc2rad(3);                           // angular deviation to z axis [ rad ]
+const double max_angle = perc2rad(3);                                   // angular deviation to z axis [ rad ]
 
 // Parameter  Velodyne front
-const double vf_front_length = 30.0;                                    // length of front zone of the front velodyne [ m ]
+const double vf_front_length = 28.5;                                    // length of front zone of the front velodyne [ m ]
+const double vf_mid_length = 30.0;                                      // length of mid zone of the front velodyne [ m ]
 const double vf_rear_length = 16.5;                                     // length of rear zone of the front velodyne [ m ]
 const double vf_deviation_mid_point = 1.5;                              // deviation of the mid point of the two zones from base footprint  [ m ]
-const double vf_z_min_ground_front = -0.5;                              // minimum hight for RANSAC [ m ]
-const double vf_z_max_ground_front = 0.5;                               // maximum hight for RANSAC [ m ]
-const double vf_z_min_ground_rear = -0.5;                               // minimum hight for RANSAC [ m ]
-const double vf_z_max_ground_rear = 0.5;                                // maximum hight for RANSAC [ m ]
+const double vf_z_max_ground_front = 1.0;                              // minimum hight for RANSAC [ m ]
+const double vf_z_max_ground_mid = 0.7;                                 // maximum hight for RANSAC [ m ]
+const double vf_z_max_ground_rear = 0.3;                                // maximum hight for RANSAC [ m ]
 
 // Parameter  Velodyne rear
-const double vr_front_length = 31.5;                                    // length of front zone of the rear velodyne [ m ]
+const double vr_front_length = 30.0;                                    // length of front zone of the rear velodyne [ m ]
+const double vr_mid_length = 31.5;                                      // length of mid zone of the front velodyne [ m ]
 const double vr_rear_length = 13.5;                                     // length of rear zone of the rear velodyne [ m ]
 const double vr_deviation_mid_point = -1.5;                             // deviation of the mid point of the two zones from base footprint [ m ]
-const double vr_z_min_ground_front = -0.5;                              // minimum hight for RANSAC [ m ]
-const double vr_z_max_ground_front = 0.5;                               // maximum hight for RANSAC [ m ]
-const double vr_z_min_ground_rear = -0.5;                               // minimum hight for RANSAC [ m ]
+const double vr_z_max_ground_front = 1.0;                               // maximum hight for RANSAC [ m ]
+const double vr_z_max_ground_mid = 0.7;                              // minimum hight for RANSAC [ m ]
 const double vr_z_max_ground_rear = 0.5;                                // maximum hight for RANSAC [ m ]
 
 // Parameter  Velodyne top
 const double vt_front_length = 40.0;                                    // length of front zone of the top velodyne [ m ]
 const double vt_deviation_start_point = 20.0;                           // deviation of the rear point of zone of the top velodyne [ m ]
-const double vt_z_min_ground_front = -1.0;                              // minimum hight for RANSAC [ m ]
 const double vt_z_max_ground_front = 1.0;                               // maximum hight for RANSAC [ m ]
 
 // Parameter  livox front
@@ -70,12 +69,9 @@ const double l_front_length = 26.0;                                     // front
 const double l_mid_length = 15.0;                                        // mid zone of the livox[ m ]
 const double l_rear_length = 15.0;                                      // rear zone of the livox [ m ]
 const double l_deviation_mid_point = 4.0;                               // deviation of the mid point of the two zones from base footprint [ m ]
-const double l_z_min_ground_front = -0.5;                               // minimum hight for RANSAC [ m ]
-const double l_z_max_ground_front = 0.5;                                // maximum hight for RANSAC [ m ]
-const double l_z_min_ground_mid = -0.5;                                 // minimum hight for RANSAC [ m ]
+const double l_z_max_ground_front = 1.0;                                // maximum hight for RANSAC [ m ]
 const double l_z_max_ground_mid = 0.5;                                  // maximum hight for RANSAC [ m ]
-const double l_z_min_ground_rear = -0.5;                                // minimum hight for RANSAC [ m ]
-const double l_z_max_ground_rear = 0.5;                                 // maximum hight for RANSAC [ m ]
+const double l_z_max_ground_rear = 0.3;                                 // maximum hight for RANSAC [ m ]
 
 
 /**
