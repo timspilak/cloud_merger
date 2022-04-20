@@ -38,7 +38,7 @@
 #include <pcl/filters/voxel_grid.h>
 
 // General
-bool got_transformations = false;
+bool transformations_received = false;
 ros::Publisher nogroundpub;         // Publisher for no ground Pointcloud (/points_no_ground)
 ros::Publisher groundpub;           // Publisher for ground Pointcloud (/points_ground)
 ros::Publisher voxelpub;            // Publisher for ground Pointcloud (/points_voxel)
@@ -76,6 +76,7 @@ bool fusePointclouds(pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_ptr, pcl::Po
 void voxelgrid(const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr voxel_cloud_ptr);
 void outlierRemoval(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr);
 void publishPointcloud(const pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_ptr, const pcl::PointCloud<pcl::PointXYZI>::Ptr ground_ptr, const pcl::PointCloud<pcl::PointXYZI>::Ptr voxel_cloud_ptr);
+void initClouds();
 
 void callbackFrontRight(const pcl::PointCloud<pcl::PointXYZI> input);
 void callbackFrontLeft(const pcl::PointCloud<pcl::PointXYZI> input);
