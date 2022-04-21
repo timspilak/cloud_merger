@@ -231,26 +231,31 @@ void callbackFrontRight(const pcl::PointCloud<pcl::PointXYZI> input)
     pcl::PointCloud<pcl::PointXYZI> ground;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_front_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_front_ptr, vf_front_length, vf_deviation_mid_point + vf_mid_length + vf_mid_length2);
+    getCloudPart(cloud_ROI_ptr, cloud_front_ptr, vf_front_length, -roi_mid + vf_rear_length + vf_veh_length + vf_mid_length + vf_mid_length2);
     removeGround(cloud_front_ptr, no_ground_ptr, ground_ptr, -vf_z_max_ground_front, vf_z_max_ground_front, max_angle);
     no_ground = *no_ground_ptr;
     ground = *ground_ptr;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_mid_ptr2 (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_mid_ptr2, vf_mid_length2, vf_deviation_mid_point + vf_mid_length);
+    getCloudPart(cloud_ROI_ptr, cloud_mid_ptr2, vf_mid_length2, -roi_mid + vf_rear_length + vf_veh_length + vf_mid_length);
     removeGround(cloud_mid_ptr2, no_ground_ptr, ground_ptr, -vf_z_max_ground_mid2, vf_z_max_ground_mid2, max_angle);
     no_ground += *no_ground_ptr;
     ground += *ground_ptr;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_mid_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_mid_ptr, vf_mid_length, vf_deviation_mid_point);
+    getCloudPart(cloud_ROI_ptr, cloud_mid_ptr, vf_mid_length, -roi_mid + vf_rear_length + vf_veh_length);
     removeGround(cloud_mid_ptr, no_ground_ptr, ground_ptr, -vf_z_max_ground_mid, vf_z_max_ground_mid, max_angle);
     no_ground += *no_ground_ptr;
     ground += *ground_ptr;
 
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_veh_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+    getCloudPart(cloud_ROI_ptr, cloud_veh_ptr, vf_veh_length, -roi_mid + vf_rear_length);
+    removeGround(cloud_veh_ptr, no_ground_ptr, ground_ptr, -vf_z_max_ground_veh, vf_z_max_ground_veh, max_angle);
+    no_ground += *no_ground_ptr;
+    ground += *ground_ptr;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_rear_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_rear_ptr, vf_rear_length, -vf_rear_length + vf_deviation_mid_point);
+    getCloudPart(cloud_ROI_ptr, cloud_rear_ptr, vf_rear_length, -roi_mid);
     removeGround(cloud_rear_ptr, no_ground_ptr, ground_ptr, -vf_z_max_ground_rear, vf_z_max_ground_rear, max_angle);
     no_ground += *no_ground_ptr;
     ground += *ground_ptr;
@@ -283,25 +288,31 @@ void callbackFrontLeft(const pcl::PointCloud<pcl::PointXYZI> input)
     pcl::PointCloud<pcl::PointXYZI> ground;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_front_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_front_ptr, vf_front_length, vf_deviation_mid_point + vf_mid_length + vf_mid_length2);
+    getCloudPart(cloud_ROI_ptr, cloud_front_ptr, vf_front_length, -roi_mid + vf_rear_length + vf_veh_length + vf_mid_length + vf_mid_length2);
     removeGround(cloud_front_ptr, no_ground_ptr, ground_ptr, -vf_z_max_ground_front, vf_z_max_ground_front, max_angle);
     no_ground = *no_ground_ptr;
     ground = *ground_ptr;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_mid_ptr2 (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_mid_ptr2, vf_mid_length2, vf_deviation_mid_point + vf_mid_length);
+    getCloudPart(cloud_ROI_ptr, cloud_mid_ptr2, vf_mid_length2, -roi_mid + vf_rear_length + vf_veh_length + vf_mid_length);
     removeGround(cloud_mid_ptr2, no_ground_ptr, ground_ptr, -vf_z_max_ground_mid2, vf_z_max_ground_mid2, max_angle);
     no_ground += *no_ground_ptr;
     ground += *ground_ptr;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_mid_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_mid_ptr, vf_mid_length, vf_deviation_mid_point);
+    getCloudPart(cloud_ROI_ptr, cloud_mid_ptr, vf_mid_length, -roi_mid + vf_rear_length + vf_veh_length);
     removeGround(cloud_mid_ptr, no_ground_ptr, ground_ptr, -vf_z_max_ground_mid, vf_z_max_ground_mid, max_angle);
     no_ground += *no_ground_ptr;
     ground += *ground_ptr;
 
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_veh_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+    getCloudPart(cloud_ROI_ptr, cloud_veh_ptr, vf_veh_length, -roi_mid + vf_rear_length);
+    removeGround(cloud_veh_ptr, no_ground_ptr, ground_ptr, -vf_z_max_ground_veh, vf_z_max_ground_veh, max_angle);
+    no_ground += *no_ground_ptr;
+    ground += *ground_ptr;
+
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_rear_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_rear_ptr, vf_rear_length, -vf_rear_length + vf_deviation_mid_point);
+    getCloudPart(cloud_ROI_ptr, cloud_rear_ptr, vf_rear_length, -roi_mid);
     removeGround(cloud_rear_ptr, no_ground_ptr, ground_ptr, -vf_z_max_ground_rear, vf_z_max_ground_rear, max_angle);
     no_ground += *no_ground_ptr;
     ground += *ground_ptr;
@@ -334,19 +345,25 @@ void callbackRearRight(const pcl::PointCloud<pcl::PointXYZI> input)
     pcl::PointCloud<pcl::PointXYZI> ground;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_front_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_front_ptr, vr_front_length, vr_deviation_mid_point + vr_mid_length);
+    getCloudPart(cloud_ROI_ptr, cloud_front_ptr, vr_front_length, -roi_mid + vr_rear_length + vr_veh_length + vr_mid_length);
     removeGround(cloud_front_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_front, vr_z_max_ground_front, max_angle);
     no_ground = *no_ground_ptr;
     ground = *ground_ptr;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_mid_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_mid_ptr, vr_mid_length, vr_deviation_mid_point);
+    getCloudPart(cloud_ROI_ptr, cloud_mid_ptr, vr_mid_length, -roi_mid + vr_rear_length + vr_veh_length);
     removeGround(cloud_mid_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_mid, vr_z_max_ground_mid, max_angle);
     no_ground += *no_ground_ptr;
     ground += *ground_ptr;
 
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_veh_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+    getCloudPart(cloud_ROI_ptr, cloud_veh_ptr, vr_veh_length, -roi_mid + vr_rear_length);
+    removeGround(cloud_veh_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_veh, vr_z_max_ground_veh, max_angle);
+    no_ground += *no_ground_ptr;
+    ground += *ground_ptr;
+
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_rear_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_rear_ptr, vr_rear_length, vr_deviation_mid_point - vr_rear_length);
+    getCloudPart(cloud_ROI_ptr, cloud_rear_ptr, vr_rear_length, -roi_mid);
     removeGround(cloud_rear_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_rear, vr_z_max_ground_rear, max_angle);
     no_ground += *no_ground_ptr;
     ground += *ground_ptr;
@@ -380,23 +397,28 @@ void callbackRearLeft(const pcl::PointCloud<pcl::PointXYZI> input)
     pcl::PointCloud<pcl::PointXYZI> ground;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_front_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_front_ptr, vr_front_length, vr_deviation_mid_point + vr_mid_length);
+    getCloudPart(cloud_ROI_ptr, cloud_front_ptr, vr_front_length, -roi_mid + vr_rear_length + vr_veh_length + vr_mid_length);
     removeGround(cloud_front_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_front, vr_z_max_ground_front, max_angle);
     no_ground = *no_ground_ptr;
     ground = *ground_ptr;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_mid_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_mid_ptr, vr_mid_length, vr_deviation_mid_point);
+    getCloudPart(cloud_ROI_ptr, cloud_mid_ptr, vr_mid_length, -roi_mid + vr_rear_length + vr_veh_length);
     removeGround(cloud_mid_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_mid, vr_z_max_ground_mid, max_angle);
     no_ground += *no_ground_ptr;
     ground += *ground_ptr;
 
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_veh_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+    getCloudPart(cloud_ROI_ptr, cloud_veh_ptr, vr_veh_length, -roi_mid + vr_rear_length);
+    removeGround(cloud_veh_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_veh, vr_z_max_ground_veh, max_angle);
+    no_ground += *no_ground_ptr;
+    ground += *ground_ptr;
+
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_rear_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_rear_ptr, vr_rear_length, vr_deviation_mid_point - vr_rear_length);
+    getCloudPart(cloud_ROI_ptr, cloud_rear_ptr, vr_rear_length, -roi_mid);
     removeGround(cloud_rear_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_rear, vr_z_max_ground_rear, max_angle);
     no_ground += *no_ground_ptr;
     ground += *ground_ptr;
-            
     // *no_ground_ptr = no_ground;
     // outlierRemoval(no_ground_ptr);        
 
@@ -564,8 +586,8 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "PointcloudPreprocessing");
     ros::NodeHandle nh;
-    // ros::AsyncSpinner spinner(6);
-    // spinner.start();
+    ros::AsyncSpinner spinner(6);
+    spinner.start();
     
     nogroundpub = nh.advertise<sensor_msgs::PointCloud2>("/points_no_ground", 1);
     groundpub = nh.advertise<sensor_msgs::PointCloud2>("/points_ground", 1);
@@ -615,9 +637,9 @@ int main(int argc, char **argv)
         voxelgrid(no_ground_ptr,voxel_cloud_ptr);
         publishPointcloud(no_ground_ptr, ground_ptr, voxel_cloud_ptr);
         
-        ros::spinOnce();
+        // ros::spinOnce();
         loop_rate.sleep();
     }
-    // ros::waitForShutdown();
+    ros::waitForShutdown();
     return 0;
 }

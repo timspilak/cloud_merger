@@ -42,23 +42,26 @@ const float prob = 0.99;                                               // probab
 const float max_angle = perc2rad(5);                                   // angular deviation to z axis [ rad ]
 
 // Parameter  Velodyne front
-const float vf_front_length = 28.5;                                    // length of front zone of the front velodyne [ m ]
+const float vf_front_length = 30.0;                                    // length of front zone of the front velodyne [ m ]
 const float vf_mid_length = 15.0;                                      // length of mid zone of the front velodyne [ m ]
-const float vf_mid_length2 = 15.0;                                      // length of mid zone of the front velodyne [ m ]
-const float vf_rear_length = 16.5;                                     // length of rear zone of the front velodyne [ m ]
-const float vf_deviation_mid_point = 1.5;                              // deviation of the mid point of the two zones from base footprint  [ m ]
+const float vf_mid_length2 = 11.0;                                      // length of mid zone of the front velodyne [ m ]
+const float vf_veh_length = 8.0;                                      // length of mid zone of the front velodyne [ m ]
+const float vf_rear_length = 11;                                     // length of rear zone of the front velodyne [ m ]
+
 const float vf_z_max_ground_front = 2.5;                               // minimum hight for RANSAC [ m ]
 const float vf_z_max_ground_mid2 = 2.0;                                 // maximum hight for RANSAC [ m ]
 const float vf_z_max_ground_mid = 1.5;                                 // maximum hight for RANSAC [ m ]
+const float vf_z_max_ground_veh = 0.3;                                 // maximum hight for RANSAC [ m ]
 const float vf_z_max_ground_rear = 0.5;                                // maximum hight for RANSAC [ m ]
 
 // Parameter  Velodyne rear
 const float vr_front_length = 30.0;                                    // length of front zone of the rear velodyne [ m ]
-const float vr_mid_length = 31.5;                                      // length of mid zone of the front velodyne [ m ]
-const float vr_rear_length = 13.5;                                     // length of rear zone of the rear velodyne [ m ]
-const float vr_deviation_mid_point = -1.5;                             // deviation of the mid point of the two zones from base footprint [ m ]
-const float vr_z_max_ground_front = 1.0;                               // maximum hight for RANSAC [ m ]
-const float vr_z_max_ground_mid = 0.7;                                 // minimum hight for RANSAC [ m ]
+const float vr_mid_length = 26.0;                                      // length of mid zone of the front velodyne [ m ]
+const float vr_veh_length = 8.0;                                      // length of mid zone of the front velodyne [ m ]
+const float vr_rear_length = 11.0;                                     // length of rear zone of the rear velodyne [ m ]
+const float vr_z_max_ground_front = 2.0;                               // maximum hight for RANSAC [ m ]
+const float vr_z_max_ground_mid = 1.5;                                 // minimum hight for RANSAC [ m ]
+const float vr_z_max_ground_veh = 0.3;                                 // minimum hight for RANSAC [ m ]
 const float vr_z_max_ground_rear = 0.5;                                // maximum hight for RANSAC [ m ]
 
 // Parameter  Velodyne top
