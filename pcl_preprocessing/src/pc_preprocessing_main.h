@@ -70,12 +70,14 @@ pcl::PointCloud<pcl::PointXYZI> livox_ground;                       // Pointclou
 
 // functions
 void getROI(const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ROI_ptr);
-void getCloudPart(const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_part_ptr, const double length, const double deviation);
-void removeGround(const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_cloud_ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr ground_cloud_ptr, const double z_min_ground, const double z_max_ground, const double max_angle);
-bool fusePointclouds(pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr ground_ptr);
+void getCloudPart(const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_part_ptr, const float length, const float deviation);
+void removeGround(const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_cloud_ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr ground_cloud_ptr, const float z_min_ground, const float z_max_ground, const float max_angle);
+void fusePointclouds(pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr ground_ptr);
 void voxelgrid(const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr voxel_cloud_ptr);
 void outlierRemoval(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr);
 void publishPointcloud(const pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_ptr, const pcl::PointCloud<pcl::PointXYZI>::Ptr ground_ptr, const pcl::PointCloud<pcl::PointXYZI>::Ptr voxel_cloud_ptr);
+void clearAllPointclouds();
+bool allPointcloudsAvailable();
 void initClouds();
 
 void callbackFrontRight(const pcl::PointCloud<pcl::PointXYZI> input);
@@ -84,6 +86,5 @@ void callbackRearRight(const pcl::PointCloud<pcl::PointXYZI> input);
 void callbackRearLeft(const pcl::PointCloud<pcl::PointXYZI> input);
 void callbackTopMiddle(const pcl::PointCloud<pcl::PointXYZI> input);
 void callbackFrintMiddle(const pcl::PointCloud<pcl::PointXYZI> input);
-void clearAllPointclouds();
-bool allPointcloudsAvailable();
+
 

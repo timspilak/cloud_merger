@@ -1,0 +1,9 @@
+## Schlechtfaelle ##
+# Parkplatz Container Szene #
+rosbag play -s 30 - u 20 parkplatz_ohne_fahrzeug0.bag 
+
+# Ende der Fahrt mit Boeschung #
+rosbag play -s 90 -u 30 parkplatz_ohne_fahrzeug0.bag
+
+## Gutfaelle ##
+rosbag play -s 55 -u 20 parkplatz_ohne_fahrzeug0.bag
