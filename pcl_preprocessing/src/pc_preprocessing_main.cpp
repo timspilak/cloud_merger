@@ -131,9 +131,9 @@ void removeGround(  const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr,
 void fusePointclouds(   pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_ptr,
                         pcl::PointCloud<pcl::PointXYZI>::Ptr ground_ptr)
 {
-    if (allPointcloudsAvailable())
+    if (flag_front_right && flag_front_left && flag_rear_right && flag_rear_left && flag_front_middle)
     {
-        initClouds();
+        // && flag_top_middle --> not in each bag file available!
         *no_ground_ptr = front_right_velodyne_no_ground;
         *no_ground_ptr += front_left_velodyne_no_ground;
         *no_ground_ptr += rear_right_velodyne_no_ground;
@@ -148,7 +148,14 @@ void fusePointclouds(   pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_ptr,
         *ground_ptr += top_middle_velodyne_ground;
         *ground_ptr += livox_ground;
 
-        clearAllPointclouds();
+        flag_fused_pc = true;
+        flag_front_right = false;
+        flag_front_left = false;
+        flag_rear_right = false;
+        flag_rear_left = false;
+        flag_top_middle = false;
+        flag_front_middle = false;
+        ROS_INFO("Fused pointclouds");
     }
 }
 
@@ -212,21 +219,18 @@ void publishPointcloud( const pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_ptr
     voxelpub.publish(voxel_msg);
 }
 /**
- * @brief front right Velodyne: transform + ground removal
+ * @brief control ground removal of front velodynes
  * 
- * @param input raw pointcloud from Sensor
+ * @param cloud_ptr         transformed input cloud pointer from front velodyne
+ * @param no_ground_ptr     output cloud pointer containing no ground points
+ * @param ground_ptr        output cloud pointer containing ground clouds
  */
-void callbackFrontRight(const pcl::PointCloud<pcl::PointXYZI> input)
-{     
-    tf::Transform transform = tf::Transform(front_right_stf.getRotation(), front_right_stf.getOrigin());
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>); 
-    pcl_ros::transformPointCloud(input, *cloud_ptr, transform);
-
+void proceedFront(const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_ptr,
+                    pcl::PointCloud<pcl::PointXYZI>::Ptr ground_ptr)
+{
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ROI_ptr (new pcl::PointCloud<pcl::PointXYZI>);
     getROI(cloud_ptr, cloud_ROI_ptr);
 
-    pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    pcl::PointCloud<pcl::PointXYZI>::Ptr ground_ptr (new pcl::PointCloud<pcl::PointXYZI>);
     pcl::PointCloud<pcl::PointXYZI> no_ground;
     pcl::PointCloud<pcl::PointXYZI> ground;
 
@@ -259,13 +263,77 @@ void callbackFrontRight(const pcl::PointCloud<pcl::PointXYZI> input)
     removeGround(cloud_rear_ptr, no_ground_ptr, ground_ptr, -vf_z_max_ground_rear, vf_z_max_ground_rear, max_angle);
     no_ground += *no_ground_ptr;
     ground += *ground_ptr;
+
+    *no_ground_ptr = no_ground;
+    *ground_ptr = ground;
+}
+/**
+ * @brief control ground removal of rear velodynes
+ * 
+ * @param cloud_ptr         transformed input cloud pointer from front velodyne    
+ * @param no_ground_ptr     output cloud pointer containing no ground points
+ * @param ground_ptr        output cloud pointer containing ground points
+ */
+void proceedRear(const pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_ptr,
+                    pcl::PointCloud<pcl::PointXYZI>::Ptr ground_ptr)
+{
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ROI_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+    getROI(cloud_ptr, cloud_ROI_ptr);
+
+    pcl::PointCloud<pcl::PointXYZI> no_ground;
+    pcl::PointCloud<pcl::PointXYZI> ground;
+
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_front_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+    getCloudPart(cloud_ROI_ptr, cloud_front_ptr, vr_front_length, -roi_mid + vr_rear_length + vr_veh_length + vr_mid_length);
+    removeGround(cloud_front_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_front, vr_z_max_ground_front, max_angle);
+    no_ground = *no_ground_ptr;
+    ground = *ground_ptr;
+
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_mid_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+    getCloudPart(cloud_ROI_ptr, cloud_mid_ptr, vr_mid_length, -roi_mid + vr_rear_length + vr_veh_length);
+    removeGround(cloud_mid_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_mid, vr_z_max_ground_mid, max_angle);
+    no_ground += *no_ground_ptr;
+    ground += *ground_ptr;
+
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_veh_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+    getCloudPart(cloud_ROI_ptr, cloud_veh_ptr, vr_veh_length, -roi_mid + vr_rear_length);
+    removeGround(cloud_veh_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_veh, vr_z_max_ground_veh, max_angle);
+    no_ground += *no_ground_ptr;
+    ground += *ground_ptr;
+
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_rear_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+    getCloudPart(cloud_ROI_ptr, cloud_rear_ptr, vr_rear_length, -roi_mid);
+    removeGround(cloud_rear_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_rear, vr_z_max_ground_rear, max_angle);
+    no_ground += *no_ground_ptr;
+    ground += *ground_ptr;
+
+    *no_ground_ptr = no_ground;
+    *ground_ptr = ground;
+}
+/**
+ * @brief front right Velodyne: transform + ground removal
+ * 
+ * @param input raw pointcloud from Sensor
+ */
+void callbackFrontRight(const pcl::PointCloud<pcl::PointXYZI> input)
+{    
+    tf::Transform transform = tf::Transform(front_right_stf.getRotation(), front_right_stf.getOrigin());
+    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>); 
+    pcl_ros::transformPointCloud(input, *cloud_ptr, transform);
     
+    pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+    pcl::PointCloud<pcl::PointXYZI>::Ptr ground_ptr (new pcl::PointCloud<pcl::PointXYZI>);
+    proceedFront(cloud_ptr, no_ground_ptr, ground_ptr);
+
     // *no_ground_ptr = no_ground;
     // outlierRemoval(no_ground_ptr);  
-
-    front_right_velodyne_no_ground = no_ground;
-    front_right_velodyne_ground = ground;
-    ROS_INFO("processed front right pointcloud");
+    if (!flag_front_right)
+    {
+        front_right_velodyne_no_ground = *no_ground_ptr;
+        front_right_velodyne_ground = *ground_ptr;
+        ROS_INFO("processed front right pointcloud");
+        flag_front_right = true;
+    }
 }
 
 /**
@@ -279,52 +347,20 @@ void callbackFrontLeft(const pcl::PointCloud<pcl::PointXYZI> input)
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
     pcl_ros::transformPointCloud(input, *cloud_ptr, transform);
 
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ROI_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getROI(cloud_ptr, cloud_ROI_ptr);
-
     pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_ptr (new pcl::PointCloud<pcl::PointXYZI>);
     pcl::PointCloud<pcl::PointXYZI>::Ptr ground_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    pcl::PointCloud<pcl::PointXYZI> no_ground;
-    pcl::PointCloud<pcl::PointXYZI> ground;
+    proceedFront(cloud_ptr, no_ground_ptr, ground_ptr);
 
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_front_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_front_ptr, vf_front_length, -roi_mid + vf_rear_length + vf_veh_length + vf_mid_length + vf_mid_length2);
-    removeGround(cloud_front_ptr, no_ground_ptr, ground_ptr, -vf_z_max_ground_front, vf_z_max_ground_front, max_angle);
-    no_ground = *no_ground_ptr;
-    ground = *ground_ptr;
-
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_mid_ptr2 (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_mid_ptr2, vf_mid_length2, -roi_mid + vf_rear_length + vf_veh_length + vf_mid_length);
-    removeGround(cloud_mid_ptr2, no_ground_ptr, ground_ptr, -vf_z_max_ground_mid2, vf_z_max_ground_mid2, max_angle);
-    no_ground += *no_ground_ptr;
-    ground += *ground_ptr;
-
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_mid_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_mid_ptr, vf_mid_length, -roi_mid + vf_rear_length + vf_veh_length);
-    removeGround(cloud_mid_ptr, no_ground_ptr, ground_ptr, -vf_z_max_ground_mid, vf_z_max_ground_mid, max_angle);
-    no_ground += *no_ground_ptr;
-    ground += *ground_ptr;
-
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_veh_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_veh_ptr, vf_veh_length, -roi_mid + vf_rear_length);
-    removeGround(cloud_veh_ptr, no_ground_ptr, ground_ptr, -vf_z_max_ground_veh, vf_z_max_ground_veh, max_angle);
-    no_ground += *no_ground_ptr;
-    ground += *ground_ptr;
-
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_rear_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_rear_ptr, vf_rear_length, -roi_mid);
-    removeGround(cloud_rear_ptr, no_ground_ptr, ground_ptr, -vf_z_max_ground_rear, vf_z_max_ground_rear, max_angle);
-    no_ground += *no_ground_ptr;
-    ground += *ground_ptr;
-            
     // *no_ground_ptr = no_ground;
     // outlierRemoval(no_ground_ptr);  
-
-    front_left_velodyne_no_ground = no_ground;
-    front_left_velodyne_ground = ground;
-    ROS_INFO("processed front left pointcloud");
+    if (!flag_front_left)
+    {
+        front_left_velodyne_no_ground = *no_ground_ptr;
+        front_left_velodyne_ground = *ground_ptr;    
+        ROS_INFO("processed front left pointcloud");
+        flag_front_left = true;    
+    }
 }
-
 /**
  * @brief rear right Velodyne: transform + ground removal
  * 
@@ -336,46 +372,21 @@ void callbackRearRight(const pcl::PointCloud<pcl::PointXYZI> input)
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
     pcl_ros::transformPointCloud(input, *cloud_ptr, transform);
 
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ROI_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getROI(cloud_ptr, cloud_ROI_ptr);
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_ptr (new pcl::PointCloud<pcl::PointXYZI>);
     pcl::PointCloud<pcl::PointXYZI>::Ptr ground_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    pcl::PointCloud<pcl::PointXYZI> no_ground;
-    pcl::PointCloud<pcl::PointXYZI> ground;
-
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_front_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_front_ptr, vr_front_length, -roi_mid + vr_rear_length + vr_veh_length + vr_mid_length);
-    removeGround(cloud_front_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_front, vr_z_max_ground_front, max_angle);
-    no_ground = *no_ground_ptr;
-    ground = *ground_ptr;
-
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_mid_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_mid_ptr, vr_mid_length, -roi_mid + vr_rear_length + vr_veh_length);
-    removeGround(cloud_mid_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_mid, vr_z_max_ground_mid, max_angle);
-    no_ground += *no_ground_ptr;
-    ground += *ground_ptr;
-
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_veh_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_veh_ptr, vr_veh_length, -roi_mid + vr_rear_length);
-    removeGround(cloud_veh_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_veh, vr_z_max_ground_veh, max_angle);
-    no_ground += *no_ground_ptr;
-    ground += *ground_ptr;
-
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_rear_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_rear_ptr, vr_rear_length, -roi_mid);
-    removeGround(cloud_rear_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_rear, vr_z_max_ground_rear, max_angle);
-    no_ground += *no_ground_ptr;
-    ground += *ground_ptr;
+    proceedFront(cloud_ptr, no_ground_ptr, ground_ptr);
 
     // *no_ground_ptr = no_ground;
     // outlierRemoval(no_ground_ptr);    
-
-    rear_right_velodyne_no_ground = no_ground;
-    rear_right_velodyne_ground = ground;
-    ROS_INFO("processed rear right pointcloud");
+    if(!flag_rear_right)
+    {
+        rear_right_velodyne_no_ground = *no_ground_ptr;
+        rear_right_velodyne_ground = *ground_ptr;
+        ROS_INFO("processed rear right pointcloud");
+        flag_rear_right = true;
+    }
 }
-
 /**
  * @brief rear left Velodyne: transform + ground removal
  * 
@@ -388,43 +399,20 @@ void callbackRearLeft(const pcl::PointCloud<pcl::PointXYZI> input)
     pcl_ros::transformPointCloud(input, *cloud_ptr, transform);
 
 
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_ROI_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getROI(cloud_ptr, cloud_ROI_ptr);
-
     pcl::PointCloud<pcl::PointXYZI>::Ptr no_ground_ptr (new pcl::PointCloud<pcl::PointXYZI>);
     pcl::PointCloud<pcl::PointXYZI>::Ptr ground_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    pcl::PointCloud<pcl::PointXYZI> no_ground;
-    pcl::PointCloud<pcl::PointXYZI> ground;
+    proceedFront(cloud_ptr, no_ground_ptr, ground_ptr);
 
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_front_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_front_ptr, vr_front_length, -roi_mid + vr_rear_length + vr_veh_length + vr_mid_length);
-    removeGround(cloud_front_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_front, vr_z_max_ground_front, max_angle);
-    no_ground = *no_ground_ptr;
-    ground = *ground_ptr;
-
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_mid_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_mid_ptr, vr_mid_length, -roi_mid + vr_rear_length + vr_veh_length);
-    removeGround(cloud_mid_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_mid, vr_z_max_ground_mid, max_angle);
-    no_ground += *no_ground_ptr;
-    ground += *ground_ptr;
-
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_veh_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_veh_ptr, vr_veh_length, -roi_mid + vr_rear_length);
-    removeGround(cloud_veh_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_veh, vr_z_max_ground_veh, max_angle);
-    no_ground += *no_ground_ptr;
-    ground += *ground_ptr;
-
-    pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_rear_ptr (new pcl::PointCloud<pcl::PointXYZI>);
-    getCloudPart(cloud_ROI_ptr, cloud_rear_ptr, vr_rear_length, -roi_mid);
-    removeGround(cloud_rear_ptr, no_ground_ptr, ground_ptr, -vr_z_max_ground_rear, vr_z_max_ground_rear, max_angle);
-    no_ground += *no_ground_ptr;
-    ground += *ground_ptr;
     // *no_ground_ptr = no_ground;
     // outlierRemoval(no_ground_ptr);        
 
-    rear_left_velodyne_no_ground = no_ground;
-    rear_left_velodyne_ground = ground;
-    ROS_INFO("processed rear left pointcloud");
+    if (!flag_rear_left)
+    {
+        rear_left_velodyne_no_ground = *no_ground_ptr;
+        rear_left_velodyne_ground = *ground_ptr;
+        ROS_INFO("processed rear left pointcloud");
+        flag_rear_left = true;
+    }
 }
 /**
  * @brief top middle Velodyne: transform + ground removal
@@ -457,12 +445,14 @@ void callbackTopMiddle(const pcl::PointCloud<pcl::PointXYZI> input)
 
     // *no_ground_ptr = no_ground;
     // outlierRemoval(no_ground_ptr);
-
-    top_middle_velodyne_no_ground = no_ground;
-    top_middle_velodyne_ground = ground;
-    ROS_INFO("processed top middle pointcloud");
+    if(!flag_top_middle)
+    {
+        top_middle_velodyne_no_ground = no_ground;
+        top_middle_velodyne_ground = ground;
+        ROS_INFO("processed top middle pointcloud");    
+        flag_top_middle = true;
+    }
 }
-
 /**
  * @brief Livox: transform + ground removal
  * 
@@ -508,80 +498,14 @@ void callbackFrontMiddle(const pcl::PointCloud<pcl::PointXYZI> input)
     
     // *no_ground_ptr = no_ground;
     // outlierRemoval(no_ground_ptr);
-
-    livox_no_ground = no_ground;
-    livox_ground = ground;
-    ROS_INFO("processed Livox pointcloud");
-}
-/**
- * @brief clear all pointclouds
- * 
- */
-void clearAllPointclouds()
-{
-    front_right_velodyne_no_ground.clear();
-    front_left_velodyne_no_ground.clear();
-    front_right_velodyne_ground.clear();
-    front_left_velodyne_ground.clear();
-    rear_right_velodyne_ground.clear();
-    rear_right_velodyne_no_ground.clear();
-    rear_left_velodyne_ground.clear();
-    rear_left_velodyne_no_ground.clear();
-    top_middle_velodyne_ground.clear();
-    top_middle_velodyne_no_ground.clear();
-    livox_ground.clear();
-    livox_no_ground.clear();
-}
-
-/**
- * @brief check if each pointcloud was received, transformed and ground removed
- * 
- * @return true if everey Pointcloud was processed
- * @return false if not everey Pointcloud was processed
- */
-bool allPointcloudsAvailable()
-{
-    if( !front_right_velodyne_no_ground.empty()&&
-        !front_right_velodyne_ground.empty()&&
-        !front_left_velodyne_no_ground.empty()&&
-        !front_left_velodyne_ground.empty()&&
-        !rear_right_velodyne_no_ground.empty()&&
-        !rear_right_velodyne_ground.empty()&&
-        !rear_left_velodyne_no_ground.empty()&&
-        !rear_left_velodyne_ground.empty()&&
-        !livox_no_ground.empty()&&
-        !livox_ground.empty())
+    if(!flag_front_middle)
     {
-        return true;
+        livox_no_ground = no_ground;
+        livox_ground = ground;
+        ROS_INFO("processed Livox pointcloud");
+        flag_front_middle = true;
     }
-    else
-    {
-        return false;
-    }
-    // top middle is not in everey bag available
-    //!top_middle_velodyne_no_ground.empty()&&
-    //!top_middle_velodyne_ground.empty()&&
 }
-/**
- * @brief add frame id to each Pointcloud for correct transformation
- * 
- */
-void initClouds()
-{
-    front_right_velodyne_no_ground.header.frame_id = "base_footprint";
-    front_right_velodyne_ground.header.frame_id = "base_footprint";
-    front_left_velodyne_no_ground.header.frame_id = "base_footprint";
-    front_left_velodyne_ground.header.frame_id = "base_footprint";
-    rear_right_velodyne_no_ground.header.frame_id = "base_footprint";
-    rear_right_velodyne_ground.header.frame_id = "base_footprint";
-    rear_left_velodyne_no_ground.header.frame_id = "base_footprint";
-    rear_left_velodyne_ground.header.frame_id = "base_footprint";
-    top_middle_velodyne_no_ground.header.frame_id = "base_footprint";
-    top_middle_velodyne_ground.header.frame_id = "base_footprint";
-    livox_no_ground.header.frame_id = "base_footprint";
-    livox_ground.header.frame_id = "base_footprint";
-}
-
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "PointcloudPreprocessing");
@@ -601,16 +525,30 @@ int main(int argc, char **argv)
     ros::Subscriber front_livox_sub = nh.subscribe<pcl::PointCloud<pcl::PointXYZI>>("/livoxfront/livox/lidar", 0, callbackFrontMiddle);
     
     ros::Rate loop_rate(10);
+
     tf::TransformListener listener_fr;
     tf::TransformListener listener_fl;
     tf::TransformListener listener_rr;
     tf::TransformListener listener_rl;
     tf::TransformListener listener_tm;
-    tf::TransformListener listener_f_liv;   
+    tf::TransformListener listener_f_liv; 
+
+    front_right_velodyne_no_ground.header.frame_id = "base_footprint";
+    front_right_velodyne_ground.header.frame_id = "base_footprint";
+    front_left_velodyne_no_ground.header.frame_id = "base_footprint";
+    front_left_velodyne_ground.header.frame_id = "base_footprint";
+    rear_right_velodyne_no_ground.header.frame_id = "base_footprint";
+    rear_right_velodyne_ground.header.frame_id = "base_footprint";
+    rear_left_velodyne_no_ground.header.frame_id = "base_footprint";
+    rear_left_velodyne_ground.header.frame_id = "base_footprint";
+    top_middle_velodyne_no_ground.header.frame_id = "base_footprint";
+    top_middle_velodyne_ground.header.frame_id = "base_footprint";
+    livox_no_ground.header.frame_id = "base_footprint";
+    livox_ground.header.frame_id = "base_footprint";
 
     while (ros::ok())
     {
-        if (!transformations_received)
+        if (!flag_tf)
         {
             // get all Transformations
             try
@@ -621,7 +559,7 @@ int main(int argc, char **argv)
                 listener_rl.lookupTransform("/base_footprint","/velodyne_rear_left", ros::Time(0), rear_left_stf);
                 listener_tm.lookupTransform("/base_footprint", "/velodyne_top_middle", ros::Time(0), top_middle_stf);
                 listener_f_liv.lookupTransform("/base_footprint","/livox_front", ros::Time(0), front_middle_stf);
-                transformations_received = true;
+                flag_tf = true;
             }
             catch(tf::TransformException ex)
             {
@@ -634,8 +572,12 @@ int main(int argc, char **argv)
         pcl::PointCloud<pcl::PointXYZI>::Ptr voxel_cloud_ptr (new pcl::PointCloud<pcl::PointXYZI>);
 
         fusePointclouds(no_ground_ptr, ground_ptr);
-        voxelgrid(no_ground_ptr,voxel_cloud_ptr);
-        publishPointcloud(no_ground_ptr, ground_ptr, voxel_cloud_ptr);
+        if (flag_fused_pc)
+        {
+            voxelgrid(no_ground_ptr,voxel_cloud_ptr);
+            publishPointcloud(no_ground_ptr, ground_ptr, voxel_cloud_ptr); 
+            flag_fused_pc = false;  
+        }
         
         // ros::spinOnce();
         loop_rate.sleep();
